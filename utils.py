@@ -10,3 +10,5 @@ def save_images(img, img_name: str, folder_path: str = "."):
     img_path = os.path.join(folder_path, img_name)
     cv2.imwrite(img_path, img)
     
+def color_segmentation(img, color):
+    return img_segmented
