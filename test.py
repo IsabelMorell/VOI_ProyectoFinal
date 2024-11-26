@@ -2,6 +2,7 @@ import cv2
 from picamera2 import Picamera2
 import os
 import time
+from utils import *
 
 def stream_video(folder_path, threshold, duration):
     picam = Picamera2()
@@ -12,18 +13,19 @@ def stream_video(folder_path, threshold, duration):
     picam.start()
     
     contador = 0
-    tiempo_actual = time.time()
-    while (time.time() - tiempo_actual) <= duration:
+    tiempo_ant = time.time()
+    while contador <= duration:
         frame = picam.capture_array()
         
-        if time.time() - tiempo_actual >= threshold:
+        if time.time() - tiempo_ant >= threshold:
             if contador < 10:
                 frame_name = f"chessboard_0{contador}.jpg"
             else:
                 frame_name = f"chessboard_{contador}.jpg"
             cv2.imshow("picam", frame)
-            cv2.save_images(frame, frame_name, folder_path)
+            save_images(frame, frame_name, folder_path)
             contador += 1
+            tiempo_ant = time.time()
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
@@ -32,5 +34,6 @@ def stream_video(folder_path, threshold, duration):
 if __name__ == "__main__":
     threshold = 1
     duration = 30
-    folder_path = os.path.join(os.path.dirname(os.getcwd()), "data", "chessboard_frames")
+    folder_path = os.path.join("./data", "chessboard_frames")
+    create_folder(folder_path)
     stream_video(folder_path, threshold, duration)
