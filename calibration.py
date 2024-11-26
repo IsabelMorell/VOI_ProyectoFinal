@@ -14,4 +14,3 @@ def find_chessboard_corners(imgs: List[np.array()], dimensions: Tuple[int,int]):
     return corners
 
 
-# hola
