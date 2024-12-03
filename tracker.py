@@ -1,6 +1,7 @@
 import cv2
 from picamera2 import Picamera2
 import constants as cte
+import numpy as np
 
 def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
-    img_net = net_detection(frame, sobel_filter, gauss_sigma, gauss_filter_shape):
+    img_net = net_detection(frame, sobel_filter, gauss_sigma, gauss_filter_shape)
 
     while True:
         frame = picam.capture_array()
