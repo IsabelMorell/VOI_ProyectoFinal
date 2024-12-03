@@ -34,9 +34,27 @@ def show_image(img) -> None:
 def write_image(path, img) -> None:
     cv2.imwrite(path, img)
 
+# 
+DX = 30
+DY = 30
+
+def load_images(filenames):
+    return [imageio.v2.imread(filename) for filename in filenames]
+
+def show_image(img) -> None:
+    cv2.imshow("Chessboard Images", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+def write_image(path, img) -> None:
+    cv2.imwrite(path, img)
+
 
 def find_chessboard_corners(imgs):
+def find_chessboard_corners(imgs):
     corners = [cv2.findChessboardCorners(img, (WIDTH, HEIGHT), None) for img in imgs]
+    corners_refined = refine_corners(corners)
+    return corners_refined
     corners_refined = refine_corners(corners)
     return corners_refined
 
@@ -47,6 +65,7 @@ def refine_corners(imgs, corners):
     corners_refined = [cv2.cornerSubPix(img, corner[1], (WIDTH, HEIGHT), ZERO_ZONE, criteria) if corner[0] else [] for img, corner in zip(imgs_gray, corners_copy)]
     return corners_refined
 
+def safe_corners(folder_path: str, img_name: str, imgs, corners) -> None:
 def safe_corners(folder_path: str, img_name: str, imgs, corners) -> None:
     os.makedirs(folder_path, exist_ok=True)
     for i in range(len(imgs)):
@@ -67,6 +86,9 @@ def get_chessboard_points(chessboard_shape, dx, dy):
     # SE HA CAMBIADO: i SON COLUMNAS Y j SON FILAS
     for i in range(chessboard_shape[1]):
         for j in range(chessboard_shape[0]):
+    # SE HA CAMBIADO: i SON COLUMNAS Y j SON FILAS
+    for i in range(chessboard_shape[1]):
+        for j in range(chessboard_shape[0]):
             matriz.append(np.array([i*dx, j*dy, 0]))
     return np.array(matriz, dtype=np.float32)
 
@@ -75,7 +97,25 @@ def get_chessboard_points(chessboard_shape, dx, dy):
 #     imgs_copy = copy.deepcopy(imgs)
 #     valid_corners = []
 #     chessboard_points = []
+# def get_corners_and_chessboards_points(imgs, corners):
+#     imgs_copy = copy.deepcopy(imgs)
+#     valid_corners = []
+#     chessboard_points = []
 
+#     for corner in zip(imgs_copy,corners):
+#         if corner[0]:
+#             valid_corners.append(corner[1])
+#             dx = 30
+#             dy = 30
+#             chessboard_points.append(get_chessboard_points((WIDTH, HEIGHT), dx, dy))
+#         else:
+#             valid_corners.append(0)
+#             chessboard_points.append(0)
+            
+#     # Convert list to numpy array
+#     valid_corners = np.asarray(valid_corners, dtype=np.float32)
+#     chessboard_points = np.asarray(chessboard_points, dtype=np.float32)
+#     return chessboard_points, valid_corners
 #     for corner in zip(imgs_copy,corners):
 #         if corner[0]:
 #             valid_corners.append(corner[1])
