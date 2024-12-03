@@ -71,7 +71,7 @@ def get_corners_and_chessboards_points(imgs, corners):
     chessboard_points = np.asarray(chessboard_points, dtype=np.float32)
     
 def calibrate_camera():
-    folder = 
+    folder = "./data/calibration"
     height, width, _ = imgs[0].shape
     rms, intrinsics, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(chessboard_points, valid_corners, , None, None)
 
