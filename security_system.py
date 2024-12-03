@@ -3,6 +3,7 @@ import cv2
 import imageio
 import glob
 import os
+import time
 
 import numpy as np
 
@@ -10,6 +11,20 @@ from picamera2 import Picamera2
 from typing import List
 from utils_lab2 import non_max_suppression, get_hsv_color_ranges
 
+
+def load_images(filenames):
+    return [imageio.v2.imread(filename) for filename in filenames]
+
+def show_image(img) -> None:
+    cv2.imshow("Chessboard Images", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+def save_images(img, img_name: str, folder_path: str = "."):
+    if img_name[-4:] != ".jpg":
+        img_name = f"{img_name}.jpg"
+    img_path = os.path.join(folder_path, img_name)
+    cv2.imwrite(img_path, img)
 
 # imgs_path = glob.glob('data/*.jpg')
 #     folder = ""
@@ -19,21 +34,19 @@ from utils_lab2 import non_max_suppression, get_hsv_color_ranges
 # El número de colores dependerá del número de tarjetas que tengamos.
 # El código de cada color se define ejecutando color_code.py
 LIGHT_COLORS = {
-    'red': (0,0,0),
-    'orange': (0,0,0),
-    'yellow': (0,0,0),
-    'green': (0,0,0),
-    'blue': (0,0,0),
-    'blue': (0,0,0),
+    'red': (138,153,0),
+    'pink': (139,64,141),
+    'blue': (102,108,139),  # subrayador
+    'aquamarine': (40,92,110),  # estuche
+    'purple': (100,123,57)
 }
 
 DARK_COLORS = {
-    'red': (0,0,0),
-    'orange': (0,0,0),
-    'yellow': (0,0,0),
-    'green': (0,0,0),
-    'blue': (0,0,0),
-    'blue': (0,0,0),
+    'red': (255,255,136),
+    'pink': (255,121,255),
+    'blue': (112,165,219),  # subrayador
+    'aquamarine': (97,165,219),  # estuche
+    'purple': (139,255,169)
 }
 
 CODE_HSV2BGR = 54
@@ -79,12 +92,19 @@ def instert_password():
     picam.configure("preview")
     picam.start()
     i = 0
+    folder_path = "data/password"
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()
+        if i < 10:
+            frame_name = f"colors_0{i}.jpg"
+        else:
+            frame_name = f"colors_{i}.jpg"
+        save_images(frame, frame_name, folder_path)
         mask = color_segmentation(frame, color)
         if color_detected(mask):
             print(f"The color {color} was detected correctly. Show the next color card")
             i += 1
         else:
             print(f"The correct color hasn't been detected")
+        time.sleep(3)

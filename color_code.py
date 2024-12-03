@@ -8,6 +8,10 @@ Antes de ejecutar esto, debemos tener una foto con las tarjetas de los colores, 
 para definir el código BGR de cada color de los que vamos a admitir en la contraseña. 
 
 """
+
+def nothing(x):
+    pass
+
 def get_hsv_color_ranges(image: np.array):
 
     # Create a window
@@ -75,5 +79,5 @@ def get_hsv_color_ranges(image: np.array):
 
 if __name__=="__main__":
     img_name = "./data/color_segmentation/colors_10.jpg"
-    img = imageio.v2.imread(img_name)
+    img = cv2.imread(img_name)
     get_hsv_color_ranges(img)

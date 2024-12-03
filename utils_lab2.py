@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 
 def non_max_suppression(img, theta):
-
     M, N = img.shape
     Z = np.zeros((M, N), dtype=np.float32)
 
