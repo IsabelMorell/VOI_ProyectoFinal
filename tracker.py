@@ -154,5 +154,16 @@ if __name__ == "__main__":
             break
 
         # Comienzo la sustraccion de fondo en tiempo real
+        mask = mog2.apply(frame)
+
+        # Localizar los botes y cuántos hay
+
+        # mostrar la puntuacion
+        
+        # Guardo el frame
+        out.write()  # TODO: guardar el frame final que quiero que se grabe
+        # a lo mejor quiere que se muestre en la camara del ordenador??
+
+    out.release()
         
     cv2.destroyAllWindows()
