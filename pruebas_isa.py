@@ -89,7 +89,7 @@ def desk_corners_detection(image: np.array, maxCorners = 100, qualityLevel = 0.1
     return corners
 
 if __name__ == "__main__":
-    filename = "./data/foto_auxiliar.jpeg"
+    filename = "./data/foto_mesa.jpeg"
     img = cv2.imread(filename)
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
