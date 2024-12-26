@@ -11,8 +11,8 @@ def save_images(img, img_name: str, folder_path: str = "."):
     img_path = os.path.join(folder_path, img_name)
     cv2.imwrite(img_path, img)
 
-def show_image(img) -> None:
-    cv2.imshow("Chessboard Images", img)
+def show_image(img, img_name: str = "Chessboard Images") -> None:
+    cv2.imshow(img_name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
