@@ -198,3 +198,36 @@ if __name__ == "__main__":
             y_prev = y
     
     print("numero de botes total =", num_botes)
+
+
+
+
+
+
+# Supongamos que tenemos un frame llamado 'frame'
+frame = cv2.imread('example.jpg')  # Ejemplo de lectura de un frame
+height, width, _ = frame.shape  # Tamaño del frame
+
+# Define las dimensiones y posición del rectángulo
+rect_height = 50  # Altura del rectángulo
+rect_width = width  # Ancho del rectángulo (ocupando todo el ancho)
+rect_top_left = (0, height - rect_height)  # Esquina superior izquierda
+rect_bottom_right = (width, height)  # Esquina inferior derecha
+
+# Dibuja el rectángulo
+cv2.rectangle(frame, rect_top_left, rect_bottom_right, color=(255, 255, 255), thickness=-1)  # -1 para relleno
+
+# Añade el texto en el centro del rectángulo
+message = "Mensaje en el centro inferior"
+font = cv2.FONT_HERSHEY_SIMPLEX
+font_scale = 1
+font_thickness = 2
+text_size = cv2.getTextSize(message, font, font_scale, font_thickness)[0]
+text_x = (width - text_size[0]) // 2  # Coordenada x centrada
+text_y = height - (rect_height // 2) + (text_size[1] // 2)  # Coordenada y centrada
+cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
+
+# Muestra el resultado
+cv2.imshow("Frame with Rectangle and Text", frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

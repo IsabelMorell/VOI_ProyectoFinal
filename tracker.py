@@ -9,6 +9,7 @@ import numpy as np
 from utils import *
 from typing import List
 import security_system as ss
+import copy
 
 def color_segmentation(img, limit_colors):
     # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
@@ -120,10 +121,33 @@ def calculate_fps(picam):
     fps = num_frames / elapsed_time
     return fps
 
-def check_bounce(x, x_prev, left_limit, left_net, right_net, right_limit, saque, num_bounces, score1, score2):
+def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2):
     end_point = False
     # Coordinate x of bounce to locate the field where it bounced
-    if x >= left_limit and x < left_net:
+    if y < desk_top:  # it bounced on the floor
+        if x_prev < x:  # Move made by P1
+            if num_bounces == 0:
+                score2 += 1
+                end_point = True
+            elif num_bounces == 1:
+                if saque:
+                    score2 += 1
+                    end_point = True
+                else:
+                    score1 += 1
+                    end_point = True
+        else:  # Move made by P2
+            if num_bounces == 0:
+                score1 += 1
+                end_point = True
+            elif num_bounces == 1:
+                if saque:
+                    score1 += 1
+                    end_point = True
+                else:
+                    score2 += 1
+                    end_point = True
+    elif x >= left_limit and x < left_net:
         if x_prev < x:  # Bounce in field of P1 made by P1
             if saque:
                 if num_bounces == 0:
@@ -173,7 +197,21 @@ def check_bounce(x, x_prev, left_limit, left_net, right_net, right_limit, saque,
                 score1 += 1
                 end_point = True
         
-        return num_bounces, end_point
+    return num_bounces, score1, score2, end_point
+
+def update_after_point():
+    global turn_player1, saque, num_bounces, x_prev, movement_prev, end_point
+    # TODO pensar cuanto tiempo dar entre que termina un punto y comienza el siguiente
+    turn_player1 = not turn_player1
+    saque = True
+    num_bounces = 0
+    if turn_player1:
+        x_prev = left_limit
+        movement_prev = ["D", None]
+    else:
+        x_prev = right_limit
+        movement_prev = ["I", None]
+    end_point = False
 
 def check_winner(points2win: int, score1: int, score2: int):
     if score1 >= points2win:
@@ -182,6 +220,27 @@ def check_winner(points2win: int, score1: int, score2: int):
         return True, 2
     else:
         return False, None
+
+def draw_score(frame: np.array, frame_size: List, message: str, isScore: bool) -> np.array:
+    frame_width, frame_height = frame_size
+    if isScore:
+        rect_width = 100
+    else:
+        rect_width = 300
+    rect_height = 50
+    rect_top_left = ((frame_width-rect_width)//2, frame_height-rect_height)
+    rect_bottom_right = ((frame_width-rect_width)//2+rect_width, frame_height) 
+    cv2.rectangle(frame, rect_top_left, rect_bottom_right, color=(255, 255, 255), thickness=-1)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1
+    font_thickness = 2
+    text_size = cv2.getTextSize(message, font, font_scale, font_thickness)[0]
+    
+    text_x = (frame_width - text_size[0]) // 2 
+    text_y = frame_height - (rect_height // 2) + (text_size[1] // 2)
+    cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
+    return frame
 
 if __name__ == "__main__":
     frame_width = 1280
@@ -206,7 +265,6 @@ if __name__ == "__main__":
 
     # Security system
     correct_password = True # TODO: ss.insert_password(picam)
-
     # TODO: guardamos en el video el sistema de seguridad, si no?
 
     if correct_password:
@@ -250,18 +308,20 @@ if __name__ == "__main__":
         movement = [None, None]
         movement_prev = ["D", None]
 
+        frame = draw_score(frame, frame_size, "Let the game begin!", False)
+        cv2.imshow("picam", frame)
+        out.write(frame)
+
         while not win:
             frame = picam.capture_array()
-            cv2.imshow("picam", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
-            ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
+            frame_auxiliar = copy.deepcopy(frame)
+            ball_mask, segmented_ball = color_segmentation(frame_auxiliar, PINGPONG_BALL_COLORS)
             
             # Comienzo la sustraccion de fondo en tiempo real
             mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
 
-            # TODO: calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+            # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
             coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
             if coords.size > 0:
                 x = np.mean(coords[:, 1])
@@ -278,52 +338,68 @@ if __name__ == "__main__":
                         movement[0] = "D"
                     else:
                         movement[0] = "I"
-            else:
-                pass
-
-            # Localizar los botes y cuántos hay
-            if movement_prev[1] is not None:
-                if movement_prev[1] == "B" and movement[0] == "S":
-                    num_bounces, end_point = check_bounce(x, x_prev, left_limit, left_net, right_net, right_limit, saque, num_bounces, score1, score2)
-            
-            if end_point:  # actualizar la puntuacion
-                # TODO pensar cuanto tiempo dar entre que termina un punto y comienza el siguiente
-                turn_player1 = not turn_player1
-                saque = True
-                num_bounces = 0
-                if turn_player1:
-                    x_prev = left_limit
-                    movement_prev = ["D", None]
+        
+                # Localizar los botes y cuántos hay
+                if movement_prev[1] is not None:
+                    if movement_prev[1] == "B" and movement[0] == "S":
+                        num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                
+                if end_point:  # actualizar la puntuacion
+                    update_after_point()
                 else:
-                    x_prev = right_limit
-                    movement_prev = ["I", None]
-            else:
-                if movement_prev[0] != movement[1]:  # Cambia el jugador que golpea
-                    num_bounces = 0
-                movement_prev = movement
-
-                if saque and (turn_player1 and x > left_net or not turn_player1 and x < right_net):
-                    saque = False
-                    if num_bounces == 0:
-                        if turn_player1:
-                            score2 += 1
-                        else:
+                    if movement_prev[0] != movement[1]:  # The ball changes direction
+                        if x <= (right_net+20):  # Ball hit the net
                             score1 += 1
-                        end_point = True
-                    num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
-                x_prev = x
-            y_prev = y
+                            update_after_point()
+                        elif x >= (left_net-20):
+                            score2 += 1
+                            update_after_point()
+                        else:  # Player hit the ball back
+                            num_bounces = 0
+                    movement_prev = movement
 
+                    if saque and (turn_player1 and x > left_net or not turn_player1 and x < right_net):
+                        saque = False
+                        if num_bounces == 0:
+                            if turn_player1:
+                                score2 += 1
+                            else:
+                                score1 += 1
+                            end_point = True
+                        num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                    x_prev = x
+                y_prev = y
+            else:  # The ball hasn't move
+                if score1 != 0 or score2 != 0:  # Game has started
+                    if x_prev < left_limit:  # ball out of range
+                        if num_bounces == 0:
+                            score1 += 1
+                        elif num_bounces == 1:
+                            score2 += 2
+                    elif x_prev > right_limit:
+                        if num_bounces == 0:
+                            score2 += 1
+                        elif num_bounces == 1:
+                            score1 += 2
+                    update_after_point()
 
-            # Guardo el frame
-            out.write()  # TODO: guardar el frame final que quiero que se grabe
-            # a lo mejor quiere que se muestre en la camara del ordenador??
+            # Save the frame
+            frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+            cv2.imshow("picam", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-            # TODO: comprobar el ganador
+            out.write(frame)
+
+            # Check if there's a winner
             win, winner = check_winner(points2win, score1, score2)
 
-        print(f"¡Ha ganado el jugador {winner}!")
-        out.write()  # TODO Añadir un ultimo (o varios) frame que muestre quien ha ganado
+        message = f"¡Ha ganado el jugador {winner}!"
+        print(message)
+        frame = draw_score(frame, frame_size, f"¡Ha ganado el jugador {winner} {score1} - {score2}!", False)
+        for i in range(fps*5):
+            cv2.imshow("picam", frame)
+            out.write(frame)
         out.release()  
         cv2.destroyAllWindows()
     else:
