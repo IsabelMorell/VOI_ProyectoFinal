@@ -1,7 +1,6 @@
 import time
 import cv2
 from picamera2 import Picamera2
-import constants as cte
 import numpy as np
 from utils import *
 from typing import List
@@ -83,18 +82,152 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
 
 
 if __name__ == "__main__":
-    filename = "./data/color_segmentation/mesa_0.jpg"
-    img = cv2.imread(filename)
+    """ DETERMINACION DE LOS CAMPOS DE LOS JUGADORES """
+    """filename = "./data/color_segmentation/desk_0.jpg"
+    img = cv2.imread(filename)"""
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
-
-    mask, segmented_img = color_segmentation(img, DESK_COLORS)
-    show_image(mask, "Mask")
-    show_image(segmented_img, "Segmented image")
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
 
-    canny_edge = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
+    """mask, segmented_img = color_segmentation(img, DESK_COLORS)
+    show_image(mask, "Mask")
+    show_image(segmented_img, "Segmented image")
 
-    show_image(canny_edge, "Canny edges")
+    desk_edges = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
+
+    show_image(desk_edges, "Desk edges")
+    # Calcula las coordenadas de los píxeles blancos
+    coords = np.column_stack(np.where(desk_edges > 250))
+
+    if coords.size > 0:  # Verifica si hay píxeles que cumplan la condición
+        # Encuentra las coordenadas X de los píxeles más a la izquierda y a la derecha
+        left_limit = np.min(coords[:, 1])  # Mínima coordenada X
+        right_limit = np.max(coords[:, 1])
+    
+        desk_edges[:,left_limit] = 250
+        desk_edges[:,right_limit] = 250
+
+        show_image(desk_edges, "Desk edges")
+        save_images(desk_edges, "desk_edges", "./fotos_memoria")
+    
+    NET_COLOR = [(0, 198, 105), (255, 255, 255)]
+    mask, segmented_net = color_segmentation(img, NET_COLOR)
+    #show_image(mask, "Mask")
+    #show_image(segmented_net, "Segmented net")
+
+    net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape) 
+
+    #show_image(net_edges, "net edges")
+    coords = np.column_stack(np.where(net_edges > 250))
+
+    if coords.size > 0:  # Verifica si hay píxeles que cumplan la condición
+        # Encuentra las coordenadas X de los píxeles más a la izquierda y a la derecha
+        left_net = np.min(coords[:, 1])  # Mínima coordenada X
+        right_net = np.max(coords[:, 1])
+
+        desk_top = np.max(coords[:, 0])
+
+        net_edges[:,left_net] = 250
+        net_edges[:,right_net] = 250
+        net_edges[desk_top,:] = 250
+
+        show_image(net_edges, "Net edges")
+        save_images(net_edges, "net_edges_desk_top", "./fotos_memoria")
+    """
+    
+    # Use VideoCapture from OpenCV to read the video
+    videopath = './data/video_prueba.avi'  # Path to the video file
+    cap = cv2.VideoCapture(videopath)  
+
+    #Get the size of frames and the frame rate of the video
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
+
+    #Use a loop to read the frames of the video and store them in a list
+    frames = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frames.append(frame)
+    cap.release()
+
+    # Naranja: PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
+    PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Azul
+
+    # Parameters for the background subtraction
+    history = 100
+    varThreshold = 50
+    detectShadows = False
+    mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
+    
+    # Intancias previas al bucle
+    num_botes = 0
+    y_prev = None
+    position_prev = None
+    print("num frames", len(frames))
+
+    for frame in frames:
+        cv2.imshow("frame", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
+        
+        # Comienzo la sustraccion de fondo en tiempo real
+        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+        
+        coords = np.column_stack(np.where(mask > 0))  # Encuentra los píxeles blancos
+        if coords.size > 0:
+            y = np.mean(coords[:, 0])  # Promedio de las coordenadas Y
+            if y_prev is not None:
+                if y > y_prev:  # Bajando
+                    position = "B"
+                elif y < y_prev:  # Subiendo 
+                    position = "S"
+                else:  # No hay movimiento vertical
+                    position = "H"  # Horizontal
+                
+                if position_prev is not None and position == "S" and position_prev == "B":
+                    num_botes += 1
+                    print(num_botes)
+                position_prev = position
+            y_prev = y
+    
+    print("numero de botes total =", num_botes)
+
+
+
+
+
+
+# Supongamos que tenemos un frame llamado 'frame'
+frame = cv2.imread('example.jpg')  # Ejemplo de lectura de un frame
+height, width, _ = frame.shape  # Tamaño del frame
+
+# Define las dimensiones y posición del rectángulo
+rect_height = 50  # Altura del rectángulo
+rect_width = width  # Ancho del rectángulo (ocupando todo el ancho)
+rect_top_left = (0, height - rect_height)  # Esquina superior izquierda
+rect_bottom_right = (width, height)  # Esquina inferior derecha
+
+# Dibuja el rectángulo
+cv2.rectangle(frame, rect_top_left, rect_bottom_right, color=(255, 255, 255), thickness=-1)  # -1 para relleno
+
+# Añade el texto en el centro del rectángulo
+message = "Mensaje en el centro inferior"
+font = cv2.FONT_HERSHEY_SIMPLEX
+font_scale = 1
+font_thickness = 2
+text_size = cv2.getTextSize(message, font, font_scale, font_thickness)[0]
+text_x = (width - text_size[0]) // 2  # Coordenada x centrada
+text_y = height - (rect_height // 2) + (text_size[1] // 2)  # Coordenada y centrada
+cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
+
+# Muestra el resultado
+cv2.imshow("Frame with Rectangle and Text", frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

@@ -1,14 +1,19 @@
-"""
-ahora mismo estoy haciendo el background substraction en tiempo real y guardando el video de la partida a la vez
-necesito averiguar el fps de la camara
-"""
 import time
 import cv2
 from picamera2 import Picamera2
-import constants as cte
 import numpy as np
 from utils import *
 from typing import List
+import security_system as ss
+import copy
+
+def color_segmentation(img, limit_colors):
+    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
+    segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
+    segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
+    return mask, segmented_bgr
 
 def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
@@ -69,56 +74,179 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     # Use NMS to refine edges
     canny_edges_img = non_max_suppression(sobel_edges_img, theta)
     
+    # Thresholding
+    threshold = 0.5*canny_edges_img.max()
+    canny_edges_img[canny_edges_img>threshold] = 255
+
     if verbose:
         show_image(canny_edges_img, img_name="Canny Edges")   
     return canny_edges_img
 
-def net_detection(frame: np.array, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
-    frame_segmented = color_segmentation(frame, cte.NET_COLOR)
-    # Si se detectan varios objetos a parte de la red habrá que aplicar algún operador
-    # morfológico como erosión
-    canny_edge = canny_edge_detector(frame_segmented, sobel_filter, gauss_sigma, gauss_filter_shape) 
-    return canny_edge
+def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+    mask, segmented_net = color_segmentation(frame, net_colors)
+    net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape)     
+    
+    coords = np.column_stack(np.where(net_edges > 250))
+    if coords.size > 0:
+        left_net = np.min(coords[:, 1])
+        right_net = np.max(coords[:, 1])
+        desk_top = np.max(coords[:, 0])
+        return left_net, right_net, desk_top
 
-# Define Shi-Tomasi corner detection function
-def shi_tomasi_corner_detection(image: np.array, maxCorners: int, qualityLevel:float, minDistance: int, corner_color: tuple, radius: int):
-    '''
-    image - Input image
-    maxCorners - Maximum number of corners to return. 
-                 If there are more corners than are found, the strongest of them is returned. 
-                 maxCorners <= 0 implies that no limit on the maximum is set and all detected corners are returned
-    qualityLevel - Parameter characterizing the minimal accepted quality of image corners. 
-                   The parameter value is multiplied by the best corner quality measure, which is the minimal eigenvalue or the Harris function response. 
-                   The corners with the quality measure less than the product are rejected. 
-                   For example, if the best corner has the quality measure = 1500, and the qualityLevel=0.01 , then all the corners with the quality measure less than 15 are rejected
-    minDistance - Minimum possible Euclidean distance between the returned corners
-    corner_color - Desired color to highlight corners in the original image
-    radius - Desired radius (pixels) of the circle
-    '''
-    # Input image to Tomasi corner detector should be grayscale 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+    mask, segmented_desk = color_segmentation(frame, desk_colors)
+    desk_edges = canny_edge_detector(segmented_desk, sobel_filter, gauss_sigma, gauss_filter_shape) 
+    # We get the coordinates of the white pixels
+    coords = np.column_stack(np.where(desk_edges > 250))
 
-    # Apply cv2.goodFeaturesToTrack function
-    corners = cv2.goodFeaturesToTrack(gray, maxCorners, qualityLevel, minDistance)
-    # Corner coordinates conversion to integers
-    corners = np.intp(corners)
-    for corner in corners:
-        # Multidimensional array into flattened array, if necessary
-        x, y = corner.ravel()
-        # Circle corners
-        cv2.circle(image, (x,y), radius, corner_color)
-    return image
+    if coords.size > 0:
+        left_limit = np.min(coords[:, 1])
+        right_limit = np.max(coords[:, 1])
+        return left_limit, right_limit
 
-def desk_corners_detection(image: np.array, maxCorners = 100, qualityLevel = 0.1, minDistance = 4,  corner_color = (255, 0, 255), radius = 4):
-    corners = shi_tomasi_corner_detection(image, maxCorners, qualityLevel, minDistance, corner_color, radius)
-    return corners
+def calculate_fps(picam):
+    # Medir FPS
+    num_frames = 120  # Número de frames para calcular FPS
+    start_time = time.time()
+
+    for _ in range(num_frames):
+        frame = picam.capture_array()
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    fps = num_frames / elapsed_time
+    return fps
+
+def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2):
+    end_point = False
+    # Coordinate x of bounce to locate the field where it bounced
+    if y < desk_top:  # it bounced on the floor
+        if x_prev < x:  # Move made by P1
+            if num_bounces == 0:
+                score2 += 1
+                end_point = True
+            elif num_bounces == 1:
+                if saque:
+                    score2 += 1
+                    end_point = True
+                else:
+                    score1 += 1
+                    end_point = True
+        else:  # Move made by P2
+            if num_bounces == 0:
+                score1 += 1
+                end_point = True
+            elif num_bounces == 1:
+                if saque:
+                    score1 += 1
+                    end_point = True
+                else:
+                    score2 += 1
+                    end_point = True
+    elif x >= left_limit and x < left_net:
+        if x_prev < x:  # Bounce in field of P1 made by P1
+            if saque:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score2 += 1
+                    end_point = True
+            else:
+                score2 += 1
+                end_point = True
+        else:  # Move made by P2
+            if saque and num_bounces == 0:
+                score1 += 1
+                end_point = True
+            else:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score2 += 1
+                    end_point = True
+    elif x >= left_net and x <= right_net:  # it bounced on the net
+        if x_prev < x:  # Move made by P1
+            score2 += 1
+            end_point = True
+        else:  # Move made by P2
+            score1 += 1
+            end_point = True
+    elif x > right_net and x < right_limit:
+        if x_prev < x:  # Move made by P1
+            if saque and num_bounces == 0:
+                score2 += 1
+                end_point = True
+            else:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score1 += 1
+                    end_point = True
+        else:  # Move made by P2
+            if saque:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score1 += 1
+                    end_point = True
+            else:
+                score1 += 1
+                end_point = True
+        
+    return num_bounces, score1, score2, end_point
+
+def update_after_point():
+    global turn_player1, saque, num_bounces, x_prev, movement_prev, end_point
+    turn_player1 = not turn_player1
+    saque = True
+    num_bounces = 0
+    if turn_player1:
+        x_prev = left_limit
+        movement_prev = ["D", None]
+    else:
+        x_prev = right_limit
+        movement_prev = ["I", None]
+    end_point = False
+
+def check_winner(points2win: int, score1: int, score2: int):
+    if score1 >= points2win:
+        return True, 1
+    elif score2 >= points2win:
+        return True, 2
+    else:
+        return False, None
+
+def draw_score(frame: np.array, frame_size: List, message: str, isScore: bool) -> np.array:
+    frame_width, frame_height = frame_size
+    if isScore:
+        rect_width = 100
+    else:
+        rect_width = 300
+    rect_height = 50
+    rect_top_left = ((frame_width-rect_width)//2, frame_height-rect_height)
+    rect_bottom_right = ((frame_width-rect_width)//2+rect_width, frame_height) 
+    cv2.rectangle(frame, rect_top_left, rect_bottom_right, color=(255, 255, 255), thickness=-1)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1
+    font_thickness = 2
+    text_size = cv2.getTextSize(message, font, font_scale, font_thickness)[0]
+    
+    text_x = (frame_width - text_size[0]) // 2 
+    text_y = frame_height - (rect_height // 2) + (text_size[1] // 2)
+    cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
+    return frame
 
 if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
-    fps = 110  # Frame rate of the video
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
+    DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
+    NET_COLORS = [(0, 198, 105), (255, 255, 255)]
+    # PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]  # Orange ball
+    PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Blue ball
+    points2win = 5
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -128,47 +256,148 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
-    tiempo_ant = time.time()
-    while time.time() - tiempo_ant < time_margin:
-        pass
-    frame = picam.capture_array()
+    fps = calculate_fps(picam)  # Frame rate of the video
 
-    # Parameters for the net detection
-    sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
-    gauss_sigma = 3
-    gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
-    img_net = net_detection(frame, sobel_filter, gauss_sigma, gauss_filter_shape)
-    desk_corners = desk_corners_detection(frame)
-
-    # Parameters for the background subtraction
-    history = 100
-    varThreshold = 50
-    detectShadows = False
-    mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
-    
     # Create a VideoWriter object to save the video
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
-    
-    output_path = os.path.join("data", "output_video.mp4")
+    output_folder_path = "./data/output"
+    create_folder(output_folder_path)
+    output_path = os.path.join(output_folder_path, "output_video.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
-    while True:
-        frame = picam.capture_array()
+    # Security system
+    correct_password = ss.insert_password(picam, out)
+    # TODO: guardamos en el video el sistema de seguridad, si no?
+
+    if correct_password:
+        time.sleep(time_margin)
+        frame = picam.capture_array(picam)
+
+        # Parameters for the net detection
+        sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
+        gauss_sigma = 3
+        gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
+        
+        # Determination of the players' fields
+        left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+        left_net, right_net, desk_top = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
+
+        # Parameters for the background subtraction
+        history = 100
+        varThreshold = 50
+        detectShadows = False
+        mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
+
+        # Instances needed to calculate the number of bounces
+        turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
+        saque = True
+        end_point = False
+        win = False
+
+        num_bounces = 0
+        score1 = 0
+        score2 = 0
+        x_prev = left_limit
+        y_prev = None
+        movement = [None, None]
+        movement_prev = ["D", None]
+
+        frame = draw_score(frame, frame_size, "Let the game begin!", False)
         cv2.imshow("picam", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        out.write(frame)
 
-        # Comienzo la sustraccion de fondo en tiempo real
-        mask = mog2.apply(frame)
+        while not win:
+            frame = picam.capture_array()
 
-        # Localizar los botes y cuántos hay
+            frame_auxiliar = copy.deepcopy(frame)
+            ball_mask, segmented_ball = color_segmentation(frame_auxiliar, PINGPONG_BALL_COLORS)
+            
+            # Comienzo la sustraccion de fondo en tiempo real
+            mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
 
-        # mostrar la puntuacion
+            # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+            coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+            if coords.size > 0:
+                x = np.mean(coords[:, 1])
+                y = np.mean(coords[:, 0])
+                if y_prev is not None:
+                    if y > y_prev:  # Bajando
+                        movement[1] = "B"
+                    elif y < y_prev:  # Subiendo 
+                        movement[1] = "S"
+                    else:  # Movimiento horizontal
+                        movement[1] = "H" 
+                if x_prev is not None:
+                    if x > x_prev:  # Derecha
+                        movement[0] = "D"
+                    else:
+                        movement[0] = "I"
         
-        # Guardo el frame
-        out.write()  # TODO: guardar el frame final que quiero que se grabe
-        # a lo mejor quiere que se muestre en la camara del ordenador??
+                # Localizar los botes y cuántos hay
+                if movement_prev[1] is not None:
+                    if movement_prev[1] == "B" and movement[0] == "S":
+                        num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                
+                if end_point:  # actualizar la puntuacion
+                    update_after_point()
+                else:
+                    if movement_prev[0] != movement[1]:  # The ball changes direction
+                        if x <= (right_net+20):  # Ball hit the net
+                            score1 += 1
+                            update_after_point()
+                        elif x >= (left_net-20):
+                            score2 += 1
+                            update_after_point()
+                        else:  # Player hit the ball back
+                            num_bounces = 0
+                    movement_prev = movement
 
-    out.release()
+                    if saque and (turn_player1 and x > left_net or not turn_player1 and x < right_net):
+                        saque = False
+                        if num_bounces == 0:
+                            if turn_player1:
+                                score2 += 1
+                            else:
+                                score1 += 1
+                            end_point = True
+                        num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                    x_prev = x
+                y_prev = y
+            else:  # The ball hasn't move
+                if score1 != 0 or score2 != 0 and not saque:  # Game has started
+                    if x_prev < left_limit:  # ball out of range
+                        if num_bounces == 0:
+                            score1 += 1
+                        elif num_bounces == 1:
+                            score2 += 2
+                    elif x_prev > right_limit:
+                        if num_bounces == 0:
+                            score2 += 1
+                        elif num_bounces == 1:
+                            score1 += 2
+                    update_after_point()
+
+            # Save the frame
+            frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+            cv2.imshow("picam", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            out.write(frame)
+
+            # Check if there's a winner
+            win, winner = check_winner(points2win, score1, score2)
+
+        message = f"¡Ha ganado el jugador {winner} {score1} - {score2}!"
         
+    else:
+        frame = picam.capture_array(picam)
+        message = "Incorrect password"
+
+    print(message)
+    frame = draw_score(frame, frame_size, message, False)
+    for i in range(fps*5):
+        cv2.imshow("picam", frame)
+        out.write(frame)
+    out.release()  
     cv2.destroyAllWindows()

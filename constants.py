@@ -1,4 +1,0 @@
-
-
-# Colors
-NET_COLOR = ()
