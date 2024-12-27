@@ -143,6 +143,7 @@ def insert_password(picam, tiempo_espera: int = 90) -> bool:
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()  # Hacemos la foto
+        
         if i < 10:
             frame_name = f"colors_0{i}.jpg"
         else:

@@ -1,7 +1,3 @@
-"""
-ahora mismo estoy haciendo el background substraction en tiempo real y guardando el video de la partida a la vez
-necesito averiguar el fps de la camara
-"""
 import time
 import cv2
 from picamera2 import Picamera2
@@ -201,7 +197,6 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
 
 def update_after_point():
     global turn_player1, saque, num_bounces, x_prev, movement_prev, end_point
-    # TODO pensar cuanto tiempo dar entre que termina un punto y comienza el siguiente
     turn_player1 = not turn_player1
     saque = True
     num_bounces = 0
@@ -263,8 +258,15 @@ if __name__ == "__main__":
 
     fps = calculate_fps(picam)  # Frame rate of the video
 
+    # Create a VideoWriter object to save the video
+    fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
+    output_folder_path = "./data/output"
+    create_folder(output_folder_path)
+    output_path = os.path.join(output_folder_path, "output_video.avi")
+    out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
+
     # Security system
-    correct_password = True # TODO: ss.insert_password(picam)
+    correct_password = ss.insert_password(picam, out)
     # TODO: guardamos en el video el sistema de seguridad, si no?
 
     if correct_password:
@@ -285,14 +287,6 @@ if __name__ == "__main__":
         varThreshold = 50
         detectShadows = False
         mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
-        
-        # Create a VideoWriter object to save the video
-        fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
-        
-        output_folder_path = "./data/output"
-        create_folder(output_folder_path)
-        output_path = os.path.join(output_folder_path, "output_video.avi")
-        out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
         # Instances needed to calculate the number of bounces
         turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
@@ -370,7 +364,7 @@ if __name__ == "__main__":
                     x_prev = x
                 y_prev = y
             else:  # The ball hasn't move
-                if score1 != 0 or score2 != 0:  # Game has started
+                if score1 != 0 or score2 != 0 and not saque:  # Game has started
                     if x_prev < left_limit:  # ball out of range
                         if num_bounces == 0:
                             score1 += 1
