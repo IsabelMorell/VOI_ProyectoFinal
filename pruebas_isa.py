@@ -109,3 +109,4 @@ if __name__ == "__main__":
         desk_edges[:,right_limit] = 150
 
         show_image(desk_edges, "Desk edges")
+        save_images(desk_edges, "desk_edges", "./fotos_memoria")
