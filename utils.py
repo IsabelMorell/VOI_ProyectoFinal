@@ -15,17 +15,16 @@ def save_images(img, img_name: str, folder_path: str = "."):
     print(img_path)
     cv2.imwrite(img_path, img)
 
-=======
 # PROPUESTA DE FUNCIÓN
-# def show_image(img, img_name: str) -> None:
-#     cv2.imshow(img_name, img)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-def show_image(img) -> None:
-    cv2.imshow("Image", img)
+def show_image(img, img_name: str = "Image") -> None:
+    cv2.imshow(img_name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+"""def show_image(img) -> None:
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()"""
 
 def non_max_suppression(img, theta):
     M, N = img.shape
@@ -63,5 +62,3 @@ def non_max_suppression(img, theta):
                 Z[i, j] = 0
     return Z
     
-def color_segmentation(img, color):
-    return img_segmented

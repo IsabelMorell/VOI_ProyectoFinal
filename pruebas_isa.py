@@ -6,6 +6,14 @@ import numpy as np
 from utils import *
 from typing import List
 
+def color_segmentation(img, limit_colors):
+    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
+    segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
+    segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
+    return mask, segmented_bgr
+
 def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
     if filter_shape == None:
@@ -64,42 +72,29 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     
     # Use NMS to refine edges
     canny_edges_img = non_max_suppression(sobel_edges_img, theta)
+
+    # Thresholding
+    threshold = 0.5*canny_edges_img.max()
+    canny_edges_img[canny_edges_img>threshold] = 255
     
     if verbose:
         show_image(canny_edges_img, img_name="Canny Edges")   
     return canny_edges_img
 
 
-def shi_tomasi_corner_detection(image: np.array, maxCorners: int, qualityLevel:float, minDistance: int, corner_color: tuple, radius: int):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Apply cv2.goodFeaturesToTrack function
-    corners = cv2.goodFeaturesToTrack(gray, maxCorners, qualityLevel, minDistance)
-    # Corner coordinates conversion to integers
-    corners = np.intp(corners)
-    for corner in corners:
-        # Multidimensional array into flattened array, if necessary
-        x, y = corner.ravel()
-        # Circle corners
-        cv2.circle(image, (x,y), radius, corner_color)
-    return image
-
-def desk_corners_detection(image: np.array, maxCorners = 100, qualityLevel = 0.1, minDistance = 4,  corner_color = (255, 0, 255), radius = 4):
-    corners = shi_tomasi_corner_detection(image, maxCorners, qualityLevel, minDistance, corner_color, radius)
-    return corners
-
 if __name__ == "__main__":
-    filename = "./data/foto_mesa.jpeg"
+    filename = "./data/color_segmentation/mesa_0.jpg"
     img = cv2.imread(filename)
+    DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
+
+    mask, segmented_img = color_segmentation(img, DESK_COLORS)
+    show_image(mask, "Mask")
+    show_image(segmented_img, "Segmented image")
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
 
-    canny_edge = canny_edge_detector(img, sobel_filter, gauss_sigma, gauss_filter_shape) 
+    canny_edge = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
 
     show_image(canny_edge, "Canny edges")
-
-    desk_corners = desk_corners_detection(img)
-
-    show_image(desk_corners, "esquinas_mesa")
