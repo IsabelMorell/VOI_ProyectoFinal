@@ -15,6 +15,7 @@ if __name__ == "__main__":
     picam = Picamera2()
     picam.preview_configuration.main.size=frame_size
     picam.preview_configuration.main.format="RGB888"
+    # picam.video_configuration.controls.FrameRate = 110
     picam.preview_configuration.align()
     picam.configure("preview")
     picam.start()
