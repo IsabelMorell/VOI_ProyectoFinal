@@ -74,7 +74,7 @@ def color_segmentation(img, color: str):
     mask = cv2.inRange(hsv_img, LIGHT_COLORS[color], DARK_COLORS[color])
     segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
     segmented_bgr = cv2.cvtColor(segmented, CODE_HSV2BGR)
-    show_image(segmented_bgr)
+    # show_image(segmented_bgr)
     return mask, segmented_bgr
 
 def color_detected(mask, thresshold=20000) -> bool:
@@ -133,7 +133,7 @@ def prueba_insert_password():
             j += 1
         time.sleep(1)
 
-def insert_password(picam, tiempo_espera: int = 90) -> bool:
+def insert_password(picam, out, tiempo_espera: int = 90) -> bool:
     password = get_password()
     correct_password = False
     i = 0
@@ -143,7 +143,9 @@ def insert_password(picam, tiempo_espera: int = 90) -> bool:
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()  # Hacemos la foto
-        
+        cv2.imshow("picam", frame)
+        out.write(frame) 
+
         if i < 10:
             frame_name = f"colors_0{i}.jpg"
         else:
@@ -160,11 +162,16 @@ def insert_password(picam, tiempo_espera: int = 90) -> bool:
                 correct_password = True
         else:
             print(f"The correct color hasn't been detected")
-        time.sleep(1.5)
+        
+        t_auxiliar = time.time()
+        while (time.time() - t_auxiliar) < 1.5:  # time.sleep(1.5)
+            frame = picam.capture_array()  # Hacemos la foto
+            cv2.imshow("picam", frame)
+            out.write(frame) 
 
         if time.time() - tiempo_inicio > tiempo_espera:
             break
-    return correct_password
+    return correct_password, picam, out
     
 
 if __name__=="__main__":
