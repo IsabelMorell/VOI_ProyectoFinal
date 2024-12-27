@@ -6,6 +6,15 @@ import numpy as np
 from utils import *
 from typing import List
 
+def color_segmentation(img, color):
+    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_img, LIGHT_COLORS[color], DARK_COLORS[color])
+    segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
+    segmented_bgr = cv2.cvtColor(segmented, CODE_HSV2BGR)
+    show_image(segmented_bgr)
+    return mask, segmented_bgr
+
 def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
     if filter_shape == None:
@@ -89,8 +98,10 @@ def desk_corners_detection(image: np.array, maxCorners = 100, qualityLevel = 0.1
     return corners
 
 if __name__ == "__main__":
-    filename = "./data/foto_mesa.jpeg"
+    filename = "./data/foto_auxiliar.jpeg"
     img = cv2.imread(filename)
+
+    color_segmentation(img, color)
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
