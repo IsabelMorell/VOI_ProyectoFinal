@@ -221,7 +221,7 @@ def draw_score(frame: np.array, frame_size: List, message: str, isScore: bool) -
     if isScore:
         rect_width = 100
     else:
-        rect_width = 300
+        rect_width = 500
     rect_height = 50
     rect_top_left = ((frame_width-rect_width)//2, frame_height-rect_height)
     rect_bottom_right = ((frame_width-rect_width)//2+rect_width, frame_height) 
@@ -270,7 +270,11 @@ if __name__ == "__main__":
     # TODO: guardamos en el video el sistema de seguridad, si no?
 
     if correct_password:
-        time.sleep(time_margin)
+        t_auxiliar = time.time()
+        while (time.time() - t_auxiliar) <= time_margin:
+            frame = picam.capture_array()
+            cv2.imshow("picam", frame)
+            out.write(frame)
         frame = picam.capture_array()
 
         # Parameters for the net detection
