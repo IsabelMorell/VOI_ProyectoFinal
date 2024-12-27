@@ -82,7 +82,8 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
 
 
 if __name__ == "__main__":
-    filename = "./data/color_segmentation/mesa_0.jpg"
+    """ DETERMINACION DE LOS CAMPOS DE LOS JUGADORES """
+    filename = "./data/color_segmentation/desk_0.jpg"
     img = cv2.imread(filename)
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
 
@@ -110,15 +111,15 @@ if __name__ == "__main__":
 
         show_image(desk_edges, "Desk edges")
         save_images(desk_edges, "desk_edges", "./fotos_memoria")
-    """
+    
     NET_COLOR = [(0, 198, 105), (255, 255, 255)]
     mask, segmented_net = color_segmentation(img, NET_COLOR)
-    show_image(mask, "Mask")
-    show_image(segmented_net, "Segmented net")
+    #show_image(mask, "Mask")
+    #show_image(segmented_net, "Segmented net")
 
     net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape) 
 
-    show_image(net_edges, "net edges")
+    #show_image(net_edges, "net edges")
     coords = np.column_stack(np.where(net_edges > 250))
 
     if coords.size > 0:  # Verifica si hay píxeles que cumplan la condición
@@ -126,8 +127,73 @@ if __name__ == "__main__":
         left_net = np.min(coords[:, 1])  # Mínima coordenada X
         right_net = np.max(coords[:, 1])
 
+        desk_top = np.max(coords[:, 0])
+
         net_edges[:,left_net] = 250
         net_edges[:,right_net] = 250
+        net_edges[desk_top,:] = 250
 
         show_image(net_edges, "Net edges")
-        save_images(net_edges, "net_edges", "./fotos_memoria")
+        save_images(net_edges, "net_edges_desk_top", "./fotos_memoria")
+    """
+    
+    # Use VideoCapture from OpenCV to read the video
+    videopath = './data/video_prueba.avi'  # Path to the video file
+    cap = cv2.VideoCapture(videopath)  
+
+    #Get the size of frames and the frame rate of the video
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
+
+    #Use a loop to read the frames of the video and store them in a list
+    frames = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frames.append(frame)
+    cap.release()
+
+    PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
+
+    # Parameters for the background subtraction
+    history = 100
+    varThreshold = 50
+    detectShadows = False
+    mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
+    
+    # Intancias previas al bucle
+    num_botes = 0
+    y_prev = None
+    position_prev = None
+    print("num frames", len(frames))
+
+    for frame in frames:
+        cv2.imshow("frame", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        """ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
+        
+        # Comienzo la sustraccion de fondo en tiempo real
+        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+        coords = np.column_stack(np.where(mask > 0))  # Encuentra los píxeles blancos
+        if coords.size > 0:
+            y = np.mean(coords[:, 0])  # Promedio de las coordenadas Y
+            if y_prev is not None:
+                if y > y_prev:  # Bajando
+                    position = "B"
+                elif y < y_prev:  # Subiendo 
+                    position = "S"
+                else:  # No hay movimiento vertical
+                    position = "H"  # Horizontal
+                
+                if position_prev is not None and position == "S" and position_prev == "B":
+                    num_botes += 1
+                    print(num_botes)
+                position_prev = position
+            y_prev = y"""
+    
+    print("numero de botes total =", num_botes)

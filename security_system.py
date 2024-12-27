@@ -133,14 +133,8 @@ def prueba_insert_password():
             j += 1
         time.sleep(1)
 
-def insert_password(tiempo_espera: int = 90) -> bool:
+def insert_password(picam, tiempo_espera: int = 90) -> bool:
     password = get_password()
-    picam = Picamera2()
-    picam.preview_configuration.main.size = (1280, 720)
-    picam.preview_configuration.main.format = "RGB888"
-    picam.preview_configuration.align()
-    picam.configure("preview")
-    picam.start()
     correct_password = False
     i = 0
     folder_path = "./data/password"

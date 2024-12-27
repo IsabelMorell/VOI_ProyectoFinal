@@ -8,6 +8,7 @@ from picamera2 import Picamera2
 import numpy as np
 from utils import *
 from typing import List
+import security_system as ss
 
 def color_segmentation(img, limit_colors):
     # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
@@ -92,7 +93,8 @@ def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gau
     if coords.size > 0:
         left_net = np.min(coords[:, 1])
         right_net = np.max(coords[:, 1])
-        return left_net, right_net
+        desk_top = np.max(coords[:, 0])
+        return left_net, right_net, desk_top
 
 def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
     mask, segmented_desk = color_segmentation(frame, desk_colors)
@@ -108,11 +110,12 @@ def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, g
 if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
-    fps = 110  # Frame rate of the video
+    fps = 30  # Frame rate of the video  https://picamera.readthedocs.io/en/release-1.13/api_camera.html
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
     NET_COLORS = [(0, 198, 105), (255, 255, 255)]
+    PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -122,50 +125,61 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
-    # TODO: Security system
-    correct_password = insert_password()
+    # Security system
+    correct_password = ss.insert_password(picam)
 
-    time.sleep(time_margin)
-    frame = picam.capture_array()
+    # TODO: guardamos en el video el sistema de seguridad, si no?
 
-    # Parameters for the net detection
-    sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
-    gauss_sigma = 3
-    gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
-    
-    # Determination of the players' fields
-    left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
-    left_net, right_net = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
+    if correct_password:
+        time.sleep(time_margin)
+        frame = picam.capture_array(picam)
 
-    # Parameters for the background subtraction
-    history = 100
-    varThreshold = 50
-    detectShadows = False
-    mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
-    
-    # Create a VideoWriter object to save the video
-    fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
-    
-    output_path = os.path.join("data", "output_video.mp4")
-    out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
-
-    while True:
-        frame = picam.capture_array()
-        cv2.imshow("picam", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-        # Comienzo la sustraccion de fondo en tiempo real
-        mask = mog2.apply(frame)
-
-        # Localizar los botes y cuántos hay
-
-        # mostrar la puntuacion
+        # Parameters for the net detection
+        sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
+        gauss_sigma = 3
+        gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
         
-        # Guardo el frame
-        out.write()  # TODO: guardar el frame final que quiero que se grabe
-        # a lo mejor quiere que se muestre en la camara del ordenador??
+        # Determination of the players' fields
+        left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+        left_net, right_net, desk_top = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
 
-    out.release()
+        # Parameters for the background subtraction
+        history = 100
+        varThreshold = 50
+        detectShadows = False
+        mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
         
-    cv2.destroyAllWindows()
+        # Create a VideoWriter object to save the video
+        fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
+        
+        output_folder_path = "./data/output"
+        create_folder(output_folder_path)
+        output_path = os.path.join(output_folder_path, "output_video.mp4")
+        out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
+
+        while True:
+            frame = picam.capture_array()
+            cv2.imshow("picam", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
+            
+            # Comienzo la sustraccion de fondo en tiempo real
+            mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+            # TODO: calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+
+            # Localizar los botes y cuántos hay
+
+            # mostrar la puntuacion
+            
+            # Guardo el frame
+            out.write()  # TODO: guardar el frame final que quiero que se grabe
+            # a lo mejor quiere que se muestre en la camara del ordenador??
+
+        out.release()
+            
+        cv2.destroyAllWindows()
+    else:
+        print("Incorrect password")
