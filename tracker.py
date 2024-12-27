@@ -271,7 +271,7 @@ if __name__ == "__main__":
 
     if correct_password:
         time.sleep(time_margin)
-        frame = picam.capture_array(picam)
+        frame = picam.capture_array()
 
         # Parameters for the net detection
         sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
@@ -391,7 +391,7 @@ if __name__ == "__main__":
         message = f"¡Ha ganado el jugador {winner} {score1} - {score2}!"
         
     else:
-        frame = picam.capture_array(picam)
+        frame = picam.capture_array()
         message = "Incorrect password"
 
     print(message)
