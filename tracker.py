@@ -107,15 +107,92 @@ def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, g
         right_limit = np.max(coords[:, 1])
         return left_limit, right_limit
 
+def calculate_fps(picam):
+    # Medir FPS
+    num_frames = 120  # Número de frames para calcular FPS
+    start_time = time.time()
+
+    for _ in range(num_frames):
+        frame = picam.capture_array()
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    fps = num_frames / elapsed_time
+    return fps
+
+def check_bounce(x, x_prev, left_limit, left_net, right_net, right_limit, saque, num_bounces, score1, score2):
+    end_point = False
+    # Coordinate x of bounce to locate the field where it bounced
+    if x >= left_limit and x < left_net:
+        if x_prev < x:  # Bounce in field of P1 made by P1
+            if saque:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score2 += 1
+                    end_point = True
+            else:
+                score2 += 1
+                end_point = True
+        else:  # Move made by P2
+            if saque and num_bounces == 0:
+                score1 += 1
+                end_point = True
+            else:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score2 += 1
+                    end_point = True
+    elif x >= left_net and x <= right_net:  # it bounced on the net
+        if x_prev < x:  # Move made by P1
+            score2 += 1
+            end_point = True
+        else:  # Move made by P2
+            score1 += 1
+            end_point = True
+    elif x > right_net and x < right_limit:
+        if x_prev < x:  # Move made by P1
+            if saque and num_bounces == 0:
+                score2 += 1
+                end_point = True
+            else:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score1 += 1
+                    end_point = True
+        else:  # Move made by P2
+            if saque:
+                if num_bounces == 0:
+                    num_bounces += 1
+                elif num_bounces == 1:
+                    score1 += 1
+                    end_point = True
+            else:
+                score1 += 1
+                end_point = True
+        
+        return num_bounces, end_point
+
+def check_winner(points2win: int, score1: int, score2: int):
+    if score1 >= points2win:
+        return True, 1
+    elif score2 >= points2win:
+        return True, 2
+    else:
+        return False, None
+
 if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
-    fps = 30  # Frame rate of the video  https://picamera.readthedocs.io/en/release-1.13/api_camera.html
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
     NET_COLORS = [(0, 198, 105), (255, 255, 255)]
-    PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
+    # PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]  # Orange ball
+    PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Blue ball
+    points2win = 5
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -125,8 +202,10 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
+    fps = calculate_fps(picam)  # Frame rate of the video
+
     # Security system
-    correct_password = ss.insert_password(picam)
+    correct_password = True # TODO: ss.insert_password(picam)
 
     # TODO: guardamos en el video el sistema de seguridad, si no?
 
@@ -154,10 +233,24 @@ if __name__ == "__main__":
         
         output_folder_path = "./data/output"
         create_folder(output_folder_path)
-        output_path = os.path.join(output_folder_path, "output_video.mp4")
+        output_path = os.path.join(output_folder_path, "output_video.avi")
         out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
-        while True:
+        # Instances needed to calculate the number of bounces
+        turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
+        saque = True
+        end_point = False
+        win = False
+
+        num_bounces = 0
+        score1 = 0
+        score2 = 0
+        x_prev = left_limit
+        y_prev = None
+        movement = [None, None]
+        movement_prev = ["D", None]
+
+        while not win:
             frame = picam.capture_array()
             cv2.imshow("picam", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -169,17 +262,69 @@ if __name__ == "__main__":
             mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
 
             # TODO: calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+            coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+            if coords.size > 0:
+                x = np.mean(coords[:, 1])
+                y = np.mean(coords[:, 0])
+                if y_prev is not None:
+                    if y > y_prev:  # Bajando
+                        movement[1] = "B"
+                    elif y < y_prev:  # Subiendo 
+                        movement[1] = "S"
+                    else:  # Movimiento horizontal
+                        movement[1] = "H" 
+                if x_prev is not None:
+                    if x > x_prev:  # Derecha
+                        movement[0] = "D"
+                    else:
+                        movement[0] = "I"
+            else:
+                pass
 
             # Localizar los botes y cuántos hay
-
-            # mostrar la puntuacion
+            if movement_prev[1] is not None:
+                if movement_prev[1] == "B" and movement[0] == "S":
+                    num_bounces, end_point = check_bounce(x, x_prev, left_limit, left_net, right_net, right_limit, saque, num_bounces, score1, score2)
             
+            if end_point:  # actualizar la puntuacion
+                # TODO pensar cuanto tiempo dar entre que termina un punto y comienza el siguiente
+                turn_player1 = not turn_player1
+                saque = True
+                num_bounces = 0
+                if turn_player1:
+                    x_prev = left_limit
+                    movement_prev = ["D", None]
+                else:
+                    x_prev = right_limit
+                    movement_prev = ["I", None]
+            else:
+                if movement_prev[0] != movement[1]:  # Cambia el jugador que golpea
+                    num_bounces = 0
+                movement_prev = movement
+
+                if saque and (turn_player1 and x > left_net or not turn_player1 and x < right_net):
+                    saque = False
+                    if num_bounces == 0:
+                        if turn_player1:
+                            score2 += 1
+                        else:
+                            score1 += 1
+                        end_point = True
+                    num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                x_prev = x
+            y_prev = y
+
+
             # Guardo el frame
             out.write()  # TODO: guardar el frame final que quiero que se grabe
             # a lo mejor quiere que se muestre en la camara del ordenador??
 
-        out.release()
-            
+            # TODO: comprobar el ganador
+            win, winner = check_winner(points2win, score1, score2)
+
+        print(f"¡Ha ganado el jugador {winner}!")
+        out.write()  # TODO Añadir un ultimo (o varios) frame que muestre quien ha ganado
+        out.release()  
         cv2.destroyAllWindows()
     else:
         print("Incorrect password")
