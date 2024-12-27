@@ -15,6 +15,7 @@ def save_images(img, img_name: str, folder_path: str = "."):
     print(img_path)
     cv2.imwrite(img_path, img)
 
+=======
 # PROPUESTA DE FUNCIÓN
 # def show_image(img, img_name: str) -> None:
 #     cv2.imshow(img_name, img)
