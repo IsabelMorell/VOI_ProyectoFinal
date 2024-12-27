@@ -133,7 +133,7 @@ def prueba_insert_password():
             j += 1
         time.sleep(1)
 
-def instert_password(tiempo_espera: int = 90) -> bool:
+def insert_password(tiempo_espera: int = 90) -> bool:
     password = get_password()
     picam = Picamera2()
     picam.preview_configuration.main.size = (1280, 720)

@@ -122,6 +122,9 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
+    # TODO: Security system
+    correct_password = insert_password()
+
     time.sleep(time_margin)
     frame = picam.capture_array()
 
