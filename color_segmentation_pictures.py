@@ -35,7 +35,7 @@ def stream_video(folder_path, threshold, duration):
 
 if __name__ == "__main__":
     threshold = 1
-    duration = 1
+    duration = 90
     folder_path = os.path.join("./data", "color_segmentation")
     create_folder(folder_path)
     stream_video(folder_path, threshold, duration)

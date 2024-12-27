@@ -85,11 +85,14 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     return canny_edges_img
 
 def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
-    frame_segmented = color_segmentation(frame, net_colors)
-    # Si se detectan varios objetos a parte de la red habrá que aplicar algún operador
-    # morfológico como erosión
-    canny_edge = canny_edge_detector(frame_segmented, sobel_filter, gauss_sigma, gauss_filter_shape) 
-    return canny_edge
+    mask, segmented_net = color_segmentation(frame, net_colors)
+    net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape)     
+    
+    coords = np.column_stack(np.where(net_edges > 250))
+    if coords.size > 0:
+        left_net = np.min(coords[:, 1])
+        right_net = np.max(coords[:, 1])
+        return left_net, right_net
 
 def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
     mask, segmented_desk = color_segmentation(frame, desk_colors)
@@ -109,7 +112,7 @@ if __name__ == "__main__":
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
-    NET_COLORS = []
+    NET_COLORS = [(0, 198, 105), (255, 255, 255)]
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -119,9 +122,7 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
-    tiempo_ant = time.time()
-    while time.time() - tiempo_ant < time_margin:
-        pass
+    time.sleep(time_margin)
     frame = picam.capture_array()
 
     # Parameters for the net detection
@@ -131,8 +132,7 @@ if __name__ == "__main__":
     
     # Determination of the players' fields
     left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
-    img_net = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
-
+    left_net, right_net = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
 
     # Parameters for the background subtraction
     history = 100

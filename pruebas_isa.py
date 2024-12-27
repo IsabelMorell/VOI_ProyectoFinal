@@ -86,13 +86,13 @@ if __name__ == "__main__":
     img = cv2.imread(filename)
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
 
-    mask, segmented_img = color_segmentation(img, DESK_COLORS)
-    show_image(mask, "Mask")
-    show_image(segmented_img, "Segmented image")
-
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
+
+    """mask, segmented_img = color_segmentation(img, DESK_COLORS)
+    show_image(mask, "Mask")
+    show_image(segmented_img, "Segmented image")
 
     desk_edges = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
 
@@ -105,8 +105,29 @@ if __name__ == "__main__":
         left_limit = np.min(coords[:, 1])  # Mínima coordenada X
         right_limit = np.max(coords[:, 1])
     
-        desk_edges[:,left_limit] = 150
-        desk_edges[:,right_limit] = 150
+        desk_edges[:,left_limit] = 250
+        desk_edges[:,right_limit] = 250
 
         show_image(desk_edges, "Desk edges")
         save_images(desk_edges, "desk_edges", "./fotos_memoria")
+    """
+    NET_COLOR = [(0, 198, 105), (255, 255, 255)]
+    mask, segmented_net = color_segmentation(img, NET_COLOR)
+    show_image(mask, "Mask")
+    show_image(segmented_net, "Segmented net")
+
+    net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape) 
+
+    show_image(net_edges, "net edges")
+    coords = np.column_stack(np.where(net_edges > 250))
+
+    if coords.size > 0:  # Verifica si hay píxeles que cumplan la condición
+        # Encuentra las coordenadas X de los píxeles más a la izquierda y a la derecha
+        left_net = np.min(coords[:, 1])  # Mínima coordenada X
+        right_net = np.max(coords[:, 1])
+
+        net_edges[:,left_net] = 250
+        net_edges[:,right_net] = 250
+
+        show_image(net_edges, "Net edges")
+        save_images(net_edges, "net_edges", "./fotos_memoria")
