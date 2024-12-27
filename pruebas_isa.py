@@ -83,8 +83,8 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
 
 if __name__ == "__main__":
     """ DETERMINACION DE LOS CAMPOS DE LOS JUGADORES """
-    filename = "./data/color_segmentation/desk_0.jpg"
-    img = cv2.imread(filename)
+    """filename = "./data/color_segmentation/desk_0.jpg"
+    img = cv2.imread(filename)"""
     DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
@@ -155,7 +155,8 @@ if __name__ == "__main__":
         frames.append(frame)
     cap.release()
 
-    PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
+    # Naranja: PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]
+    PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Azul
 
     # Parameters for the background subtraction
     history = 100
@@ -174,11 +175,11 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        """ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
+        ball_mask, segmented_ball = color_segmentation(frame, PINGPONG_BALL_COLORS)
         
         # Comienzo la sustraccion de fondo en tiempo real
         mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
-
+        
         coords = np.column_stack(np.where(mask > 0))  # Encuentra los píxeles blancos
         if coords.size > 0:
             y = np.mean(coords[:, 0])  # Promedio de las coordenadas Y
@@ -194,6 +195,6 @@ if __name__ == "__main__":
                     num_botes += 1
                     print(num_botes)
                 position_prev = position
-            y_prev = y"""
+            y_prev = y
     
     print("numero de botes total =", num_botes)

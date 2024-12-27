@@ -8,14 +8,13 @@ from typing import List
 if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
-    fps = 30  # Frame rate of the video  https://picamera.readthedocs.io/en/release-1.13/api_camera.html
+    fps = 110  # Frame rate of the video  https://picamera.readthedocs.io/en/release-1.13/api_camera.html
     frame_size = (frame_width, frame_height) # Size of the frames
     
     # Configuration to stream the video
     picam = Picamera2()
     picam.preview_configuration.main.size=frame_size
     picam.preview_configuration.main.format="RGB888"
-    picam.video_configuration.controls.FrameRate = 30
     picam.preview_configuration.align()
     picam.configure("preview")
     picam.start()
@@ -30,7 +29,8 @@ if __name__ == "__main__":
 
     t_start = time.time()
 
-    while (time.time() - t_start) <= 20:
+
+    while True:
         frame = picam.capture_array()
         cv2.imshow("picam", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
