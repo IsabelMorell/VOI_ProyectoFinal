@@ -262,7 +262,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_SSfailed.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected2.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -280,7 +280,7 @@ if __name__ == "__main__":
         
         # Determination of the players' fields
         left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
-        left_net, right_net, desk_top = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
+        left_net, right_net, desk_top = net_detection(frame, NET_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
 
         # Parameters for the background subtraction
         history = 100
@@ -396,7 +396,7 @@ if __name__ == "__main__":
 
     print(message)
     frame = draw_score(frame, frame_size, message, False)
-    for i in range(fps*5):
+    for i in range(int(fps)*5):
         cv2.imshow("picam", frame)
         out.write(frame)
     out.release()  
