@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     t_start = time.time()
 
-    while (time.time() - t_start) <= 15:
+    while (time.time() - t_start) <= 20:
         frame = picam.capture_array()
         cv2.imshow("picam", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
