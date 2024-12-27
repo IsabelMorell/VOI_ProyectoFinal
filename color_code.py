@@ -1,10 +1,11 @@
 import cv2
 import imageio
+import glob
 
 import numpy as np
 
 """
-Antes de ejecutar esto, debemos tener una foto con las tarjetas de los colores, porque este fichero lo ejecutaremos 
+Antes de ejecutar esto, debemos tener las fotos con las tarjetas de los colores, porque este fichero lo ejecutaremos 
 para definir el código BGR de cada color de los que vamos a admitir en la contraseña. 
 
 """
@@ -78,6 +79,7 @@ def get_hsv_color_ranges(image: np.array):
     cv2.destroyAllWindows()
 
 if __name__=="__main__":
-    img_name = "./data/color_segmentation/colors_10.jpg"
+    imgs = glob.glob("./data/color_segmentation/colors_*.jpg")
+    img_name = imgs[0]
     img = cv2.imread(img_name)
     get_hsv_color_ranges(img)

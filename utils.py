@@ -5,14 +5,25 @@ import numpy as np
 def create_folder(folder_path: str):
     os.makedirs(folder_path, exist_ok=True)
 
+def load_images(filenames):
+    return [cv2.imread(filename) for filename in filenames]
+
 def save_images(img, img_name: str, folder_path: str = "."):
     if img_name[-4:] != ".jpg":
         img_name = f"{img_name}.jpg"
     img_path = os.path.join(folder_path, img_name)
+    print(img_path)
     cv2.imwrite(img_path, img)
 
-def show_image(img, img_name: str = "Chessboard Images") -> None:
-    cv2.imshow(img_name, img)
+=======
+# PROPUESTA DE FUNCIÓN
+# def show_image(img, img_name: str) -> None:
+#     cv2.imshow(img_name, img)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
+
+def show_image(img) -> None:
+    cv2.imshow("Image", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
