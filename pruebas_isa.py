@@ -1,7 +1,6 @@
 import time
 import cv2
 from picamera2 import Picamera2
-import constants as cte
 import numpy as np
 from utils import *
 from typing import List
@@ -95,6 +94,18 @@ if __name__ == "__main__":
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
 
-    canny_edge = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
+    desk_edges = canny_edge_detector(segmented_img, sobel_filter, gauss_sigma, gauss_filter_shape) 
 
-    show_image(canny_edge, "Canny edges")
+    show_image(desk_edges, "Desk edges")
+    # Calcula las coordenadas de los píxeles blancos
+    coords = np.column_stack(np.where(desk_edges > 250))
+
+    if coords.size > 0:  # Verifica si hay píxeles que cumplan la condición
+        # Encuentra las coordenadas X de los píxeles más a la izquierda y a la derecha
+        left_limit = np.min(coords[:, 1])  # Mínima coordenada X
+        right_limit = np.max(coords[:, 1])
+    
+        desk_edges[:,left_limit] = 150
+        desk_edges[:,right_limit] = 150
+
+        show_image(desk_edges, "Desk edges")

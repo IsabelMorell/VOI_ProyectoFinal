@@ -5,10 +5,17 @@ necesito averiguar el fps de la camara
 import time
 import cv2
 from picamera2 import Picamera2
-import constants as cte
 import numpy as np
 from utils import *
 from typing import List
+
+def color_segmentation(img, limit_colors):
+    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
+    segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
+    segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
+    return mask, segmented_bgr
 
 def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
@@ -69,49 +76,31 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     # Use NMS to refine edges
     canny_edges_img = non_max_suppression(sobel_edges_img, theta)
     
+    # Thresholding
+    threshold = 0.5*canny_edges_img.max()
+    canny_edges_img[canny_edges_img>threshold] = 255
+
     if verbose:
         show_image(canny_edges_img, img_name="Canny Edges")   
     return canny_edges_img
 
-def net_detection(frame: np.array, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
-    frame_segmented = color_segmentation(frame, cte.NET_COLOR)
+def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+    frame_segmented = color_segmentation(frame, net_colors)
     # Si se detectan varios objetos a parte de la red habrá que aplicar algún operador
     # morfológico como erosión
     canny_edge = canny_edge_detector(frame_segmented, sobel_filter, gauss_sigma, gauss_filter_shape) 
     return canny_edge
 
-# Define Shi-Tomasi corner detection function
-def shi_tomasi_corner_detection(image: np.array, maxCorners: int, qualityLevel:float, minDistance: int, corner_color: tuple, radius: int):
-    '''
-    image - Input image
-    maxCorners - Maximum number of corners to return. 
-                 If there are more corners than are found, the strongest of them is returned. 
-                 maxCorners <= 0 implies that no limit on the maximum is set and all detected corners are returned
-    qualityLevel - Parameter characterizing the minimal accepted quality of image corners. 
-                   The parameter value is multiplied by the best corner quality measure, which is the minimal eigenvalue or the Harris function response. 
-                   The corners with the quality measure less than the product are rejected. 
-                   For example, if the best corner has the quality measure = 1500, and the qualityLevel=0.01 , then all the corners with the quality measure less than 15 are rejected
-    minDistance - Minimum possible Euclidean distance between the returned corners
-    corner_color - Desired color to highlight corners in the original image
-    radius - Desired radius (pixels) of the circle
-    '''
-    # Input image to Tomasi corner detector should be grayscale 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+    mask, segmented_desk = color_segmentation(frame, desk_colors)
+    desk_edges = canny_edge_detector(segmented_desk, sobel_filter, gauss_sigma, gauss_filter_shape) 
+    # We get the coordinates of the white pixels
+    coords = np.column_stack(np.where(desk_edges > 250))
 
-    # Apply cv2.goodFeaturesToTrack function
-    corners = cv2.goodFeaturesToTrack(gray, maxCorners, qualityLevel, minDistance)
-    # Corner coordinates conversion to integers
-    corners = np.intp(corners)
-    for corner in corners:
-        # Multidimensional array into flattened array, if necessary
-        x, y = corner.ravel()
-        # Circle corners
-        cv2.circle(image, (x,y), radius, corner_color)
-    return image
-
-def desk_corners_detection(image: np.array, maxCorners = 100, qualityLevel = 0.1, minDistance = 4,  corner_color = (255, 0, 255), radius = 4):
-    corners = shi_tomasi_corner_detection(image, maxCorners, qualityLevel, minDistance, corner_color, radius)
-    return corners
+    if coords.size > 0:
+        left_limit = np.min(coords[:, 1])
+        right_limit = np.max(coords[:, 1])
+        return left_limit, right_limit
 
 if __name__ == "__main__":
     frame_width = 1280
@@ -119,6 +108,8 @@ if __name__ == "__main__":
     fps = 110  # Frame rate of the video
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
+    DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
+    NET_COLORS = []
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -137,8 +128,11 @@ if __name__ == "__main__":
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
-    img_net = net_detection(frame, sobel_filter, gauss_sigma, gauss_filter_shape)
-    desk_corners = desk_corners_detection(frame)
+    
+    # Determination of the players' fields
+    left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+    img_net = net_detection(frame, sobel_filter, NET_COLORS, gauss_sigma, gauss_filter_shape)
+
 
     # Parameters for the background subtraction
     history = 100
