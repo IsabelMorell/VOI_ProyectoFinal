@@ -388,13 +388,16 @@ if __name__ == "__main__":
             # Check if there's a winner
             win, winner = check_winner(points2win, score1, score2)
 
-        message = f"¡Ha ganado el jugador {winner}!"
-        print(message)
-        frame = draw_score(frame, frame_size, f"¡Ha ganado el jugador {winner} {score1} - {score2}!", False)
-        for i in range(fps*5):
-            cv2.imshow("picam", frame)
-            out.write(frame)
-        out.release()  
-        cv2.destroyAllWindows()
+        message = f"¡Ha ganado el jugador {winner} {score1} - {score2}!"
+        
     else:
-        print("Incorrect password")
+        frame = picam.capture_array(picam)
+        message = "Incorrect password"
+
+    print(message)
+    frame = draw_score(frame, frame_size, message, False)
+    for i in range(fps*5):
+        cv2.imshow("picam", frame)
+        out.write(frame)
+    out.release()  
+    cv2.destroyAllWindows()
