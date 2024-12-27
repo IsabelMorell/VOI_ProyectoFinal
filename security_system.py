@@ -131,9 +131,9 @@ def prueba_insert_password():
         else:
             print(f"The correct color hasn't been detected")
             j += 1
-        time.sleep(2)
+        time.sleep(1)
 
-def instert_password():
+def instert_password(tiempo_espera: int = 90) -> bool:
     password = get_password()
     picam = Picamera2()
     picam.preview_configuration.main.size = (1280, 720)
@@ -141,9 +141,11 @@ def instert_password():
     picam.preview_configuration.align()
     picam.configure("preview")
     picam.start()
+    correct_password = False
     i = 0
     folder_path = "./data/password"
     create_folder(folder_path)
+    tiempo_inicio = time.time()
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()  # Hacemos la foto
@@ -153,12 +155,22 @@ def instert_password():
             frame_name = f"colors_{i}.jpg"
         mask, segmented_bgr = color_segmentation(frame, color)  # Sacamos la máscara del color que deberíamos identificar
         if color_detected(mask):
-            print(f"The color {color} was detected correctly. Show the next color card")
+            print(f"The color {color} was detected correctly")
             save_images(segmented_bgr, frame_name, folder_path)
             i += 1
+            if i < len(password):
+                print("Show the next color card")
+            else:
+                print("Security system disconnected")
+                correct_password = True
         else:
             print(f"The correct color hasn't been detected")
-        time.sleep(2)
+        time.sleep(1.5)
+
+        if time.time() - tiempo_inicio > tiempo_espera:
+            break
+    return correct_password
+    
 
 if __name__=="__main__":
     prueba_insert_password()
