@@ -1,80 +1,39 @@
 import os
 import cv2
-import imageio
 import glob
 import os
 import time
 
 import numpy as np
+import constants as cte
 
 # from picamera2 import Picamera2
-from typing import List
+from typing import List,Tuple
 from utils import *
 
 
-# def load_images(filenames):
-#     return [cv2.imread(filename) for filename in filenames]
-
-# def show_image(img) -> None:
-#     cv2.imshow("Chessboard Images", img)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
+def color_segmentation(img: np.ndarray, color: str) -> Tuple[np.ndarray,np.ndarray]:
+    # DOCUMENTACIÓN COPIADA DE CHAT => Revisar y añadir el error 
+    """
+    Realiza la segmentación de color en una imagen dada y devuelve una máscara binaria y la imagen segmentada.
     
-
-
-# imgs_path = glob.glob('data/*.jpg')
-#     folder = ""
-#     img_name = ""
-#     imgs = load_images(imgs_path)
-
-# El número de colores dependerá del número de tarjetas que tengamos.
-# El código de cada color se define ejecutando color_code.py
-LIGHT_COLORS = {
-    'purple': (110,70,130),
-    'dark_yellow': (20,55,180),
-    'light_yellow': (25,15,180),
-    'orange': (0,90,170),
-    'pink': (150,45,170),
-    'dark_blue': (95,195,160),
-    'light_blue': (95,65,170),
-    'dark_green': (50,175,105),
-    'light_green': (35,75,160)
-}
-
-DARK_COLORS = {
-    'purple': (150,110,210),
-    'dark_yellow': (25,255,255),
-    'light_yellow': (35,150,205),
-    'orange': (20,255,255),
-    'pink': (180,80,195),
-    'dark_blue': (105,255,185),
-    'light_blue': (105,130,195),
-    'dark_green': (70,230,155),
-    'light_green': (50,120,170)
-}
-
-CODE_HSV2BGR = 54
-CODE_BGR2HSV = 40
-
-# def hsv_to_bgr(imgs):
-#     bgr_imgs = []
-#     for img in imgs:
-#         bgr_imgs.append(cv2.cvtColor(img, CODE_HSV2BGR))
-#     return bgr_imgs
-
-# def bgr_to_hsv(imgs):
-#     hsv_imgs = []
-#     for img in imgs:
-#         hsv_imgs.append(cv2.cvtColor(img, CODE_BGR2HSV))
-#     return hsv_imgs
-
-def color_segmentation(img, color: str):
+    Args:
+        img (np.array): Imagen de entrada en formato BGR (matriz de NumPy).
+        color (str): Color objetivo a segmentar (por ejemplo, 'red', 'blue', 'green').
+    
+    Returns:
+        Tuple[np.array, np.array]: 
+            - La máscara binaria (1 donde se detecta el color, 0 en el resto).
+            - La imagen segmentada en formato BGR.
+    
+    Raises:
+        ValueError: Si el color proporcionado no es válido.
+    """
     # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
-    hsv_img = cv2.cvtColor(img, CODE_BGR2HSV)
-    mask = cv2.inRange(hsv_img, LIGHT_COLORS[color], DARK_COLORS[color])
+    hsv_img = cv2.cvtColor(img, cte.CODE_BGR2HSV)
+    mask = cv2.inRange(hsv_img, cte.LIGHT_COLORS[color], cte.DARK_COLORS[color])
     segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
-    segmented_bgr = cv2.cvtColor(segmented, CODE_HSV2BGR)
-    # show_image(segmented_bgr)
+    segmented_bgr = cv2.cvtColor(segmented, cte.CODE_HSV2BGR)
     return mask, segmented_bgr
 
 def color_detected(mask, thresshold=15000) -> bool:
@@ -99,7 +58,6 @@ def prueba_insert_password():
     imgs = load_images(imgs_path)
     password = get_password("password_prueba.txt")
     i = 0
-    j = -1
     folder_path = os.path.join("./data", "password_prueba")
     create_folder(folder_path)
     while i < len(password):
@@ -109,7 +67,6 @@ def prueba_insert_password():
             frame_name = f"colors_0{i}.jpg"
         else:
             frame_name = f"colors_{i}.jpg"
-        # show_image(frame)
         mask, segmented_bgr = color_segmentation(frame, color)  # Sacamos la máscara del color que deberíamos identificar
 
         # Esto es para guardar imágenes
