@@ -197,7 +197,7 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
     return num_bounces, score1, score2, end_point
 
 def update_after_point():
-    global turn_player1, saque, num_bounces, x_prev, movement_prev, end_point
+    global turn_player1, saque, num_bounces, x_prev, movement_prev
     turn_player1 = not turn_player1
     saque = True
     num_bounces = 0
@@ -207,7 +207,6 @@ def update_after_point():
     else:
         x_prev = right_limit
         movement_prev = ["I", None]
-    end_point = False
 
 def check_winner(points2win: int, score1: int, score2: int):
     if score1 >= points2win:
@@ -258,7 +257,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected3.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected4.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -302,13 +301,37 @@ if __name__ == "__main__":
         movement = [None, None]
         movement_prev = ["D", None]
 
-        message = "¡Que comience el juego!"
+        message = "Let the game begin!"
         print(message)
         frame = draw_score(frame, frame_size, message, False)
-        cv2.imshow("picam", frame)
-        out.write(frame)
+        for i in range(int(fps)*5):
+            cv2.imshow("picam", frame)
+            out.write(frame)
 
         while not win:
+            if end_point:
+                if turn_player1:
+                    while x > left_limit:
+                        frame = picam.capture_array()
+                        # Save the frame
+                        frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+                        cv2.imshow("picam", frame)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+
+                        out.write(frame)
+                else:
+                    while x < right_limit:
+                        frame = picam.capture_array()
+                        # Save the frame
+                        frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+                        cv2.imshow("picam", frame)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+
+                        out.write(frame)
+                end_point = False
+
             frame = picam.capture_array()
 
             frame_auxiliar = copy.deepcopy(frame)
@@ -339,6 +362,7 @@ if __name__ == "__main__":
                 if movement_prev[1] is not None:
                     if movement_prev[1] == "B" and movement[0] == "S":
                         num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                        cv2.circle(frame, (x,y), 3, (255, 0, 255))
                 
                 if end_point:  # actualizar la puntuacion
                     update_after_point()
@@ -390,7 +414,7 @@ if __name__ == "__main__":
             # Check if there's a winner
             win, winner = check_winner(cte.POINTS2WIN, score1, score2)
 
-        message = f"¡Ha ganado el jugador {winner} {score1} - {score2}!"
+        message = f"And the winner is P{winner} {score1} - {score2}!"
         
     else:
         frame = picam.capture_array()
