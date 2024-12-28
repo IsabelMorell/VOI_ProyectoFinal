@@ -10,7 +10,6 @@ ACCURACY = 0.01
 DX = 30
 DY = 30
 
-
 # SECURITY SYSTEM
 # El código de cada color se define ejecutando color_code.py
 LIGHT_COLORS = {

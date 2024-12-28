@@ -313,6 +313,17 @@ if __name__ == "__main__":
                 if turn_player1:
                     while x > left_limit:
                         frame = picam.capture_array()
+                        frame_auxiliar = copy.deepcopy(frame)
+                        ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
+                        
+                        # Comienzo la sustraccion de fondo en tiempo real
+                        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+                        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+                        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+                        if coords.size > 0:
+                            x = np.mean(coords[:, 1])
+                            y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
                         cv2.imshow("picam", frame)
@@ -323,6 +334,18 @@ if __name__ == "__main__":
                 else:
                     while x < right_limit:
                         frame = picam.capture_array()
+                        frame = picam.capture_array()
+                        frame_auxiliar = copy.deepcopy(frame)
+                        ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
+                        
+                        # Comienzo la sustraccion de fondo en tiempo real
+                        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+                        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+                        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+                        if coords.size > 0:
+                            x = np.mean(coords[:, 1])
+                            y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
                         cv2.imshow("picam", frame)

@@ -5,6 +5,7 @@ import numpy as np
 from utils import *
 from typing import List
 
+
 def color_segmentation(img, limit_colors):
     # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -81,17 +82,17 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     return canny_edges_img
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
     """ DETERMINACION DE LOS CAMPOS DE LOS JUGADORES """
     """filename = "./data/color_segmentation/desk_0.jpg"
     img = cv2.imread(filename)"""
-    DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
+    """DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
 
     sobel_filter = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
     gauss_sigma = 3
     gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
 
-    """mask, segmented_img = color_segmentation(img, DESK_COLORS)
+    mask, segmented_img = color_segmentation(img, DESK_COLORS)
     show_image(mask, "Mask")
     show_image(segmented_img, "Segmented image")
 
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
         show_image(net_edges, "Net edges")
         save_images(net_edges, "net_edges_desk_top", "./fotos_memoria")
-    """
+    
     
     # Use VideoCapture from OpenCV to read the video
     videopath = './data/video_prueba.avi'  # Path to the video file
@@ -230,4 +231,4 @@ cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_
 # Muestra el resultado
 cv2.imshow("Frame with Rectangle and Text", frame)
 cv2.waitKey(0)
-cv2.destroyAllWindows()
+cv2.destroyAllWindows()"""
