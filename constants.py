@@ -1,4 +1,3 @@
-
 # CALIBRATION
 # Number of inner corners of the image
 WIDTH = 12
@@ -40,3 +39,9 @@ DARK_COLORS = {
 
 CODE_HSV2BGR = 54
 CODE_BGR2HSV = 40
+
+# TRACKER
+DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
+NET_COLORS = [(0, 198, 105), (255, 255, 255)]
+PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Blue ball
+POINTS2WIN = 5

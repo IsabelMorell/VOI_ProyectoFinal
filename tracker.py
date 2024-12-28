@@ -6,6 +6,7 @@ from utils import *
 from typing import List
 import security_system as ss
 import copy
+import constants as cte
 
 def color_segmentation(img, limit_colors):
     # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
@@ -242,11 +243,6 @@ if __name__ == "__main__":
     frame_height = 720
     frame_size = (frame_width, frame_height) # Size of the frames
     time_margin = 5
-    DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
-    NET_COLORS = [(0, 198, 105), (255, 255, 255)]
-    # PINGPONG_BALL_COLORS = [(0, 172, 130), (166, 255, 255)]  # Orange ball
-    PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Blue ball
-    points2win = 5
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -262,7 +258,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected2.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected3.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -283,8 +279,8 @@ if __name__ == "__main__":
         gauss_filter_shape = [8*gauss_sigma + 1, 8*gauss_sigma + 1]
         
         # Determination of the players' fields
-        left_limit, right_limit = desk_detection(frame, DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
-        left_net, right_net, desk_top = net_detection(frame, NET_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+        left_limit, right_limit = desk_detection(frame, cte.DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+        left_net, right_net, desk_top = net_detection(frame, cte.NET_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
 
         # Parameters for the background subtraction
         history = 100
@@ -306,7 +302,9 @@ if __name__ == "__main__":
         movement = [None, None]
         movement_prev = ["D", None]
 
-        frame = draw_score(frame, frame_size, "Let the game begin!", False)
+        message = "¡Que comience el juego!"
+        print(message)
+        frame = draw_score(frame, frame_size, message, False)
         cv2.imshow("picam", frame)
         out.write(frame)
 
@@ -314,7 +312,7 @@ if __name__ == "__main__":
             frame = picam.capture_array()
 
             frame_auxiliar = copy.deepcopy(frame)
-            ball_mask, segmented_ball = color_segmentation(frame_auxiliar, PINGPONG_BALL_COLORS)
+            ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
             
             # Comienzo la sustraccion de fondo en tiempo real
             mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
@@ -390,7 +388,7 @@ if __name__ == "__main__":
             out.write(frame)
 
             # Check if there's a winner
-            win, winner = check_winner(points2win, score1, score2)
+            win, winner = check_winner(cte.POINTS2WIN, score1, score2)
 
         message = f"¡Ha ganado el jugador {winner} {score1} - {score2}!"
         
