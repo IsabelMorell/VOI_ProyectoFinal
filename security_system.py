@@ -33,7 +33,7 @@ LIGHT_COLORS = {
     'purple': (110,70,130),
     'dark_yellow': (20,55,180),
     'light_yellow': (25,15,180),
-    'orange': (0,90,170),  # hasta aquí está bien
+    'orange': (0,90,170),
     'pink': (150,45,170),
     'dark_blue': (95,195,160),
     'light_blue': (95,65,170),
@@ -45,7 +45,7 @@ DARK_COLORS = {
     'purple': (150,110,210),
     'dark_yellow': (25,255,255),
     'light_yellow': (35,150,205),
-    'orange': (20,255,255),  # hasta aquí está bien
+    'orange': (20,255,255),
     'pink': (180,80,195),
     'dark_blue': (105,255,185),
     'light_blue': (105,130,195),
@@ -74,7 +74,7 @@ def color_segmentation(img, color: str):
     mask = cv2.inRange(hsv_img, LIGHT_COLORS[color], DARK_COLORS[color])
     segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
     segmented_bgr = cv2.cvtColor(segmented, CODE_HSV2BGR)
-    show_image(segmented_bgr)
+    # show_image(segmented_bgr)
     return mask, segmented_bgr
 
 def color_detected(mask, thresshold=15000) -> bool:
@@ -131,14 +131,8 @@ def prueba_insert_password():
             print(f"The correct color hasn't been detected")
         time.sleep(1)
 
-def instert_password(tiempo_espera: int = 90) -> bool:
+def insert_password(picam, out, tiempo_espera: int = 90) -> bool:
     password = get_password("password.txt")
-    picam = Picamera2()
-    picam.preview_configuration.main.size = (1280, 720)
-    picam.preview_configuration.main.format = "RGB888"
-    picam.preview_configuration.align()
-    picam.configure("preview")
-    picam.start()
     correct_password = False
     i = 0
     folder_path = "./data/password"
@@ -147,6 +141,9 @@ def instert_password(tiempo_espera: int = 90) -> bool:
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()  # Hacemos la foto
+        cv2.imshow("picam", frame)
+        out.write(frame) 
+
         if i < 10:
             frame_name = f"colors_0{i}.jpg"
         else:
@@ -163,11 +160,16 @@ def instert_password(tiempo_espera: int = 90) -> bool:
                 correct_password = True
         else:
             print(f"The correct color hasn't been detected")
-        time.sleep(1.5)
+        
+        t_auxiliar = time.time()
+        while (time.time() - t_auxiliar) < 1.5:  # time.sleep(1.5)
+            frame = picam.capture_array()  # Hacemos la foto
+            cv2.imshow("picam", frame)
+            out.write(frame) 
 
         if time.time() - tiempo_inicio > tiempo_espera:
             break
-    return correct_password
+    return correct_password, picam, out
     
 
 if __name__=="__main__":

@@ -19,9 +19,10 @@ def stream_video(folder_path, threshold, duration):
         
         if time.time() - tiempo_ant >= threshold:
             if contador < 10:
-                frame_name = f"colors_0{contador}.jpg"
+                # frame_name = f"colors_0{contador}.jpg"
                 # frame_name = f"all_colors_{contador}.jpg"
-                # frame_name = f"mesa_{contador}.jpg"
+                # frame_name = f"desl_{contador}.jpg"
+                frame_name = f"pingpong_ball_{contador+1}.jpg"
             else:
                 frame_name = f"colors_{contador}.jpg"
             cv2.imshow("picam", frame)
@@ -35,7 +36,7 @@ def stream_video(folder_path, threshold, duration):
 
 if __name__ == "__main__":
     threshold = 1
-    duration = 1
+    duration = 10
     folder_path = os.path.join("./data", "color_segmentation")
     create_folder(folder_path)
     stream_video(folder_path, threshold, duration)
