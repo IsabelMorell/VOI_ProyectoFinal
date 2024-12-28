@@ -79,8 +79,9 @@ def get_hsv_color_ranges(image: np.array):
     cv2.destroyAllWindows()
 
 if __name__=="__main__":
-    imgs = glob.glob("./data/color_segmentation/colors_*.jpg")
+    # imgs = glob.glob("./data/color_segmentation/colors_*.jpg")
     # imgs = glob.glob("./data/color_segmentation/mesa_*.jpg")
-    img_name = imgs[0]
+    # img_name = imgs[0]
+    img_name = "./data/color_segmentation/all_colors_9.jpg"
     img = cv2.imread(img_name)
     get_hsv_color_ranges(img)
