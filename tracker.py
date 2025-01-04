@@ -245,7 +245,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected4.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected5.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) <= time_margin:
             frame = picam.capture_array()
-            cv2.imshow("picam", frame)
+            #cv2.imshow("picam", frame)
             out.write(frame)
         frame = picam.capture_array()
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        cv2.imshow("picam", frame)
+                        #cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -336,7 +336,7 @@ if __name__ == "__main__":
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        cv2.imshow("picam", frame)
+                        #cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -373,14 +373,14 @@ if __name__ == "__main__":
         
                 # Localizar los botes y cuántos hay
                 if movement_prev[1] is not None:
-                    if movement_prev[1] == "B" and movement[0] == "S":
+                    if movement_prev[1] == "B" and movement[1] == "S":
                         num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
                         # cv2.circle(frame, (x,y), 3, (255, 0, 255))
                 
                 if end_point:  # actualizar la puntuacion
                     update_after_point()
                 else:
-                    if movement_prev[0] != movement[1]:  # The ball changes direction
+                    if movement_prev[0] != movement[0]:  # The ball changes direction
                         if x >= (right_net-10) and x <= (right_net+20):  # Ball hit the net
                             score1 += 1
                             update_after_point()
@@ -419,7 +419,7 @@ if __name__ == "__main__":
 
             # Save the frame
             frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-            cv2.imshow("picam", frame)
+            #cv2.imshow("picam", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -437,7 +437,7 @@ if __name__ == "__main__":
     print(message)
     frame = draw_score(frame, frame_size, message, False)
     for i in range(int(fps)*5):
-        cv2.imshow("picam", frame)
+        #cv2.imshow("picam", frame)
         out.write(frame)
     out.release()  
     cv2.destroyAllWindows()
