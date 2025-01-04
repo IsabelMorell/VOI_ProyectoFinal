@@ -251,7 +251,11 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
     movement = [None, None]
     movement_prev = ["D", None]
 
-    """x = left_limit + 10
+    folder_path = "./auxiliar"
+    create_folder(folder_path)
+    contador = 0
+
+    x = left_limit + 10
     while x > left_limit:
         mutex.acquire()
         frame = frames.pop(0)
@@ -269,7 +273,7 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
             y = np.mean(coords[:, 0])
         # Save the frame
         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-        out.write(frame)"""
+        out.write(frame)
 
     while not win:
         if end_point:
@@ -324,7 +328,7 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
         
         # Comienzo la sustraccion de fondo en tiempo real
         mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
-
+        save_images(mask, f"mask_{contador}", folder_path)
         # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
         coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
         if coords.size > 0:
@@ -342,6 +346,9 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                     movement[0] = "D"
                 else:
                     movement[0] = "I"
+
+            print("prev", movement_prev)
+            print(movement)
     
             # Localizar los botes y cuántos hay
             if movement_prev[1] is not None:
@@ -415,6 +422,7 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
         out.write(frame)
         # Check if there's a winner
         win, winner = check_winner(cte.POINTS2WIN, score1, score2)
+        contador += 1
 
 
 if __name__ == "__main__":
@@ -443,8 +451,8 @@ if __name__ == "__main__":
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    correct_password, picam, out = ss.insert_password(picam, out)
-    
+    # TODO: correct_password, picam, out = ss.insert_password(picam, out)
+    correct_password = True
     if correct_password:
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) <= time_margin:
