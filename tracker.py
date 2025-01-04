@@ -295,7 +295,7 @@ if __name__ == "__main__":
         print(message)
         frame = draw_score(frame, frame_size, message, False)
         for i in range(int(fps)*5):
-            cv2.imshow("picam", frame)
+            # cv2.imshow("picam", frame)
             out.write(frame)
 
         while not win:
@@ -441,5 +441,5 @@ if __name__ == "__main__":
     for i in range(int(fps)*5):
         #cv2.imshow("picam", frame)
         out.write(frame)
-    out.release()  
+    out.release()
     cv2.destroyAllWindows()
