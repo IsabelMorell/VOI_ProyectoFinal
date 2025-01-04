@@ -4,6 +4,7 @@ from picamera2 import Picamera2
 import numpy as np
 from utils import *
 from typing import List
+import constants as cte
 
 
 def color_segmentation(img, limit_colors):
@@ -82,7 +83,16 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     return canny_edges_img
 
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
+    filename = "./auxiliar/punto_0.jpg"
+    img = cv2.imread(filename)
+    img[354:364,630:640] = (0, 0, 255)
+
+    show_image(img, "primer bote detectado")
+    mask, segmented_img = color_segmentation(img, cte.PINGPONG_BALL_COLORS)
+    show_image(mask, "Mask")
+    show_image(segmented_img, "Segmented image")
+
     """ DETERMINACION DE LOS CAMPOS DE LOS JUGADORES """
     """filename = "./data/color_segmentation/desk_0.jpg"
     img = cv2.imread(filename)"""
