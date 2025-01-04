@@ -187,13 +187,15 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
     return num_bounces, score1, score2, end_point
 
 def update_after_point():
-    global turn_player1, saque, num_bounces, movement_prev
+    global turn_player1, saque, num_bounces, x_prev, movement_prev
     turn_player1 = not turn_player1
     saque = True
     num_bounces = 0
     if turn_player1:
+        x_prev = left_limit
         movement_prev = ["D", None]
     else:
+        x_prev = right_limit
         movement_prev = ["I", None]
 
 def check_winner(points2win: int, score1: int, score2: int):
