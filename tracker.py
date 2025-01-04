@@ -238,6 +238,8 @@ def save_video(picam):
 
 def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right_net, desk_top):
     global frames, mutex, win, winner, score1, score2, turn_player1, saque, num_bounces, x_prev, movement_prev
+    frame_width, frame_height = frame_size
+    
     # Instances needed to calculate the number of bounces
     turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
     saque = True
@@ -248,6 +250,26 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
     y_prev = None
     movement = [None, None]
     movement_prev = ["D", None]
+
+    """x = left_limit + 10
+    while x > left_limit:
+        mutex.acquire()
+        frame = frames.pop(0)
+        mutex.release()
+        frame_auxiliar = copy.deepcopy(frame)
+        ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
+        
+        # Comienzo la sustraccion de fondo en tiempo real
+        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+        if coords.size > 0:
+            x = np.mean(coords[:, 1])
+            y = np.mean(coords[:, 0])
+        # Save the frame
+        frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+        out.write(frame)"""
 
     while not win:
         if end_point:
@@ -325,6 +347,10 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
             if movement_prev[1] is not None:
                 if movement_prev[1] == "B" and movement[1] == "S":
                     num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                    """frame_aux = copy.deepcopy(frame)
+                    cv2.circle(frame_aux, (x,y), 5, (0, 0, 255))
+                    save_images(frame_aux, f"bounce_{x}_{y}", output_folder_path)
+                    print("num_bounces:", num_bounces)"""
                     # cv2.circle(frame, (x,y), 3, (255, 0, 255))
             
             if end_point:  # actualizar la puntuacion
@@ -351,6 +377,23 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                         end_point = True
                         update_after_point()
                     num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                """elif not saque:
+                    if x_prev < x and x > (frame_width-20):  # ball out on the right side
+                        if num_bounces == 0:  # P1 threw the ball out
+                            score2 += 1
+                            end_point = True
+                        elif num_bounces == 1:  # P2 was unable to hit the ball back
+                            score1 += 1
+                            end_point = True
+                    elif x < x_prev and x < 20:  # ball out on the left side
+                        if num_bounces == 0:  # p2 threw the ball out
+                            score1 += 1
+                            end_point = True
+                        elif num_bounces == 1:  # P1 was unable to hit the ball back
+                            score2 += 1
+                            end_point = tuple
+                    if end_point:
+                        update_after_point()"""
                 x_prev = x
             y_prev = y
         else:  # The ball hasn't move
@@ -396,7 +439,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected6_procesos.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected7_procesos.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -419,6 +462,14 @@ if __name__ == "__main__":
         # Determination of the players' fields
         left_limit, right_limit = desk_detection(frame, cte.DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
         left_net, right_net, desk_top = net_detection(frame, cte.NET_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
+
+        frame_copy = cv2.cvtColor(copy.deepcopy(frame), cv2.COLOR_BGR2GRAY)
+        frame_copy[:, left_limit] = 250
+        frame_copy[:, right_limit] = 250
+        frame_copy[:,left_net] = 250
+        frame_copy[:,right_net] = 250
+        frame_copy[desk_top,:] = 250
+        save_images(frame_copy, "fields", "./fotos_memoria")
 
         # Parameters for the background subtraction
         history = 100
