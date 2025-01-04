@@ -16,7 +16,7 @@ def color_segmentation(img, limit_colors):
     segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
     return mask, segmented_bgr
 
-def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None) -> np.array:
+def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # If not given, compute the filter shape 
     if filter_shape == None:
         filter_shape = [8*sigma + 1, 8*sigma + 1]
@@ -32,15 +32,18 @@ def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None)
     gaussian_filter = formula/formula.sum()
     
     # Process the image
-    gb_img = cv2.filter2D(img, ddepth=-1, kernel=gaussian_filter)    
+    gb_img = cv2.filter2D(img, ddepth=-1, kernel=gaussian_filter)  
+    
+    if verbose:
+        show_image(img=gb_img, img_name=f"Gaussian Blur: Sigma = {sigma}")    
     return gaussian_filter, gb_img.astype(np.uint8)
 
-def sobel_edge_detector(img: np.array, filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None) -> np.array:
+def sobel_edge_detector(img: np.array, filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None, verbose: bool = False) -> np.array:
     # Transform the img to grayscale
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
     # Get a blurry img to improve edge detections
-    _, blurred = gaussian_blur(img=gray_img, sigma=gauss_sigma, filter_shape=gauss_filter_shape)
+    _, blurred = gaussian_blur(img=gray_img, sigma=gauss_sigma, filter_shape=gauss_filter_shape, verbose=verbose)
     
     # Re-scale
     blurred = blurred/255.0
@@ -58,12 +61,16 @@ def sobel_edge_detector(img: np.array, filter: np.array, gauss_sigma: float, gau
     sobel_edges_img = np.hypot(v_edges, h_edges)
     
     # Get edges angle
-    theta = np.arctan2(h_edges, v_edges)   
+    theta = np.arctan2(h_edges, v_edges)
+    
+    # Visualize if needed
+    if verbose:
+        show_image(img=sobel_edges_img, img_name="Sobel Edges")    
     return np.squeeze(sobel_edges_img), np.squeeze(theta)
 
-def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None, verbose: bool = False):
     # Call the method sobel_edge_detector()
-    sobel_edges_img, theta = sobel_edge_detector(img, sobel_filter, gauss_sigma, gauss_filter_shape)
+    sobel_edges_img, theta = sobel_edge_detector(img, sobel_filter, gauss_sigma, gauss_filter_shape, verbose=verbose)
     
     # Use NMS to refine edges
     canny_edges_img = non_max_suppression(sobel_edges_img, theta)
@@ -71,6 +78,9 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     # Thresholding
     threshold = 0.5*canny_edges_img.max()
     canny_edges_img[canny_edges_img>threshold] = 255
+
+    if verbose:
+        show_image(canny_edges_img, img_name="Canny Edges")   
     return canny_edges_img
 
 def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
@@ -187,13 +197,15 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
     return num_bounces, score1, score2, end_point
 
 def update_after_point():
-    global turn_player1, saque, num_bounces, movement_prev
+    global turn_player1, saque, num_bounces, x_prev, movement_prev
     turn_player1 = not turn_player1
     saque = True
     num_bounces = 0
     if turn_player1:
+        x_prev = left_limit
         movement_prev = ["D", None]
     else:
+        x_prev = right_limit
         movement_prev = ["I", None]
 
 def check_winner(points2win: int, score1: int, score2: int):
@@ -245,7 +257,7 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected5.avi")
+    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected4.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
@@ -256,7 +268,7 @@ if __name__ == "__main__":
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) <= time_margin:
             frame = picam.capture_array()
-            # cv2.imshow("picam", frame)
+            cv2.imshow("picam", frame)
             out.write(frame)
         frame = picam.capture_array()
 
@@ -293,7 +305,7 @@ if __name__ == "__main__":
         print(message)
         frame = draw_score(frame, frame_size, message, False)
         for i in range(int(fps)*5):
-            # cv2.imshow("picam", frame)
+            cv2.imshow("picam", frame)
             out.write(frame)
 
         while not win:
@@ -314,7 +326,7 @@ if __name__ == "__main__":
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        # cv2.imshow("picam", frame)
+                        cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -336,13 +348,11 @@ if __name__ == "__main__":
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        # cv2.imshow("picam", frame)
+                        cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
                         out.write(frame)
-                x_prev = x
-                y_prev = None
                 end_point = False
 
             frame = picam.capture_array()
@@ -375,23 +385,23 @@ if __name__ == "__main__":
                 if movement_prev[1] is not None:
                     if movement_prev[1] == "B" and movement[0] == "S":
                         num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
-                        # cv2.circle(frame, (x,y), 3, (255, 0, 255))
+                        cv2.circle(frame, (x,y), 3, (255, 0, 255))
                 
                 if end_point:  # actualizar la puntuacion
                     update_after_point()
                 else:
                     if movement_prev[0] != movement[1]:  # The ball changes direction
-                        if x >= (right_net-10) and x <= (right_net+20):  # Ball hit the net
+                        if x <= (right_net+20):  # Ball hit the net
                             score1 += 1
                             update_after_point()
-                        elif x >= (left_net-20) and x <= (left_net+10):
+                        elif x >= (left_net-20):
                             score2 += 1
                             update_after_point()
                         else:  # Player hit the ball back
                             num_bounces = 0
                     movement_prev = movement
 
-                    if saque and ((turn_player1 and x > left_net) or ((not turn_player1) and x < right_net)):
+                    if saque and (turn_player1 and x > left_net or not turn_player1 and x < right_net):
                         saque = False
                         if num_bounces == 0:
                             if turn_player1:
@@ -399,7 +409,7 @@ if __name__ == "__main__":
                             else:
                                 score1 += 1
                             end_point = True
-                            update_after_point()
+                        num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
                     x_prev = x
                 y_prev = y
             else:  # The ball hasn't move
@@ -418,7 +428,7 @@ if __name__ == "__main__":
 
             # Save the frame
             frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-            # cv2.imshow("picam", frame)
+            cv2.imshow("picam", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -436,7 +446,7 @@ if __name__ == "__main__":
     print(message)
     frame = draw_score(frame, frame_size, message, False)
     for i in range(int(fps)*5):
-        # cv2.imshow("picam", frame)
+        cv2.imshow("picam", frame)
         out.write(frame)
     out.release()  
     cv2.destroyAllWindows()

@@ -24,12 +24,8 @@ if __name__ == "__main__":
         ret, frame = cap.read()
         if not ret:
             break
+        cv2.imshow('Video', frame)
         frames.append(frame)
 
     cap.release()
-    #Show the frames to select the reference frame, press 'n' to move to the next frame and 's' to select the frame
-    for i, frame in enumerate(frames):
-        # Show the frame
-        cv2.imshow('Video', frame)
-
     cv2.destroyAllWindows()
