@@ -251,10 +251,6 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
     movement = [None, None]
     movement_prev = ["D", None]
 
-    folder_path = "./auxiliar"
-    create_folder(folder_path)
-    contador = 0
-
     x = left_limit + 10
     while x > left_limit:
         mutex.acquire()
@@ -328,7 +324,7 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
         
         # Comienzo la sustraccion de fondo en tiempo real
         mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
-        save_images(mask, f"mask_{contador}", folder_path)
+        
         # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
         coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
         if coords.size > 0:
@@ -410,19 +406,19 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                         score1 += 1
                     elif num_bounces == 1:
                         score2 += 2
+                    update_after_point()
                 elif x_prev > right_limit:
                     if num_bounces == 0:
                         score2 += 1
                     elif num_bounces == 1:
                         score1 += 2
-                update_after_point()
+                    update_after_point()
 
         # Save the frame
         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
         out.write(frame)
         # Check if there's a winner
         win, winner = check_winner(cte.POINTS2WIN, score1, score2)
-        contador += 1
 
 
 if __name__ == "__main__":
@@ -447,12 +443,13 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected7_procesos.avi")
+    output_path = os.path.join(output_folder_path, "output_video_procesos1.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    # TODO: correct_password, picam, out = ss.insert_password(picam, out)
-    correct_password = True
+    # TODO: correct_password = True
+    correct_password, picam, out = ss.insert_password(picam, out)
+    
     if correct_password:
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) <= time_margin:
