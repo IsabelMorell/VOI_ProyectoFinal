@@ -21,7 +21,7 @@ def stream_video(folder_path, threshold, duration):
             if contador < 10:
                 frame_name = f"colors_0{contador}.jpg"
                 # frame_name = f"all_colors_{contador}.jpg"
-                # frame_name = f"desl_{contador}.jpg"
+                # frame_name = f"desk_{contador}.jpg"
                 # frame_name = f"pingpong_ball_{contador+2}.jpg"
             else:
                 frame_name = f"colors_{contador}.jpg"

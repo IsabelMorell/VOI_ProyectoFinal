@@ -40,8 +40,10 @@ CODE_HSV2BGR = 54
 CODE_BGR2HSV = 40
 
 # TRACKER
-DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
-NET_COLORS = [(0, 198, 105), (255, 255, 255)]
+# DESK_COLORS = [(0, 125, 25), (20, 255, 255)]  # during the day
+# NET_COLORS = [(0, 198, 105), (255, 255, 255)]  # during the day
+DESK_COLORS = [(0, 125, 25), (20, 255, 80)]  # during the night
+NET_COLORS = [(120, 181, 70), (255, 255, 255)]  # during the night
 PINGPONG_BALL_COLORS = [(0, 78, 160), (88, 255, 255)]  # Orange ball
 # PINGPONG_BALL_COLORS = [(60, 150, 69), (86, 218, 184)]  # Blue ball
 POINTS2WIN = 5
