@@ -8,6 +8,15 @@ import security_system as ss
 import copy
 import constants as cte
 
+def color_segmentation(img, limit_colors):
+    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
+    segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
+    segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
+    return mask, segmented_bgr
+
+
 def calculate_fps(picam):
     # Medir FPS
     num_frames = 120  # Número de frames para calcular FPS
@@ -25,7 +34,7 @@ if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
     frame_size = (frame_width, frame_height) # Size of the frames
-    time_margin = 30
+    time_margin = 10
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -35,18 +44,22 @@ if __name__ == "__main__":
     picam.configure("preview")
     picam.start()
 
-    fps = calculate_fps(picam)  # Frame rate of the video
+    # fps = calculate_fps(picam)  # Frame rate of the video
 
     # Create a VideoWriter object to save the video
-    fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
-    output_folder_path = "./output"
-    create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected5.avi")
-    out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
+    folder_path = "./auxiliar"
+    create_folder(folder_path)
 
+    contador = 0
     t_auxiliar = time.time()
     while (time.time() - t_auxiliar) <= time_margin:
         frame = picam.capture_array()
-        out.write(frame)
-    out.release()  
+        mask, segmented_img = color_segmentation(frame, cte.PINGPONG_BALL_COLORS)
+        if contador < 10:
+            save_images(mask, f"mask_0{contador}", folder_path)
+            save_images(segmented_img, f"segmented_img_0{contador}", folder_path)
+        else:
+            save_images(mask, f"mask_{contador}", folder_path)
+            save_images(segmented_img, f"segmented_img_{contador}", folder_path)
+        contador += 1
     cv2.destroyAllWindows()
