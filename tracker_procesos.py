@@ -10,7 +10,6 @@ import numpy as np
 mutex = Semaphore(1)
 
 def color_segmentation(img, limit_colors):
-    # Necesitamos saber cómo viene la imagen para saber si hay que pasarla a hsv o no. Asumo que vienen en BGR
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
     segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
@@ -188,7 +187,7 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
     return num_bounces, score1, score2, end_point
 
 def update_after_point():
-    global turn_player1, saque, num_bounces, movement_prev
+    global turn_player1, saque, num_bounces, x_prev, movement_prev
     turn_player1 = not turn_player1
     saque = True
     num_bounces = 0
@@ -228,7 +227,6 @@ def draw_score(frame: np.array, frame_size: List, message: str, isScore: bool) -
     cv2.putText(frame, message, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
     return frame
 
-
 def save_video(picam):
     global frames, mutex, win
     while not win:
@@ -238,7 +236,9 @@ def save_video(picam):
         mutex.release()
 
 def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right_net, desk_top):
-    global frames, mutex, win, winner, score1, score2
+    global frames, mutex, win, winner, score1, score2, turn_player1, saque, num_bounces, x_prev, movement_prev
+    frame_width, frame_height = frame_size
+    
     # Instances needed to calculate the number of bounces
     turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
     saque = True
@@ -249,6 +249,26 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
     y_prev = None
     movement = [None, None]
     movement_prev = ["D", None]
+
+    x = left_limit + 10
+    while x > left_limit:
+        mutex.acquire()
+        frame = frames.pop(0)
+        mutex.release()
+        frame_auxiliar = copy.deepcopy(frame)
+        ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
+        
+        # Comienzo la sustraccion de fondo en tiempo real
+        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+
+        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+        if coords.size > 0:
+            x = np.mean(coords[:, 1])
+            y = np.mean(coords[:, 0])
+        # Save the frame
+        frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
+        out.write(frame)
 
     while not win:
         if end_point:
@@ -303,7 +323,7 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
         
         # Comienzo la sustraccion de fondo en tiempo real
         mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
-
+        
         # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
         coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
         if coords.size > 0:
@@ -321,11 +341,18 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                     movement[0] = "D"
                 else:
                     movement[0] = "I"
+
+            print("prev", movement_prev)
+            print(movement)
     
             # Localizar los botes y cuántos hay
             if movement_prev[1] is not None:
                 if movement_prev[1] == "B" and movement[1] == "S":
                     num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                    """frame_aux = copy.deepcopy(frame)
+                    cv2.circle(frame_aux, (x,y), 5, (0, 0, 255))
+                    save_images(frame_aux, f"bounce_{x}_{y}", output_folder_path)
+                    print("num_bounces:", num_bounces)"""
                     # cv2.circle(frame, (x,y), 3, (255, 0, 255))
             
             if end_point:  # actualizar la puntuacion
@@ -352,6 +379,23 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                         end_point = True
                         update_after_point()
                     num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                """elif not saque:
+                    if x_prev < x and x > (frame_width-20):  # ball out on the right side
+                        if num_bounces == 0:  # P1 threw the ball out
+                            score2 += 1
+                            end_point = True
+                        elif num_bounces == 1:  # P2 was unable to hit the ball back
+                            score1 += 1
+                            end_point = True
+                    elif x < x_prev and x < 20:  # ball out on the left side
+                        if num_bounces == 0:  # p2 threw the ball out
+                            score1 += 1
+                            end_point = True
+                        elif num_bounces == 1:  # P1 was unable to hit the ball back
+                            score2 += 1
+                            end_point = tuple
+                    if end_point:
+                        update_after_point()"""
                 x_prev = x
             y_prev = y
         else:  # The ball hasn't move
@@ -361,12 +405,13 @@ def analyze_game(out, frame_size, mog2, left_limit, right_limit, left_net, right
                         score1 += 1
                     elif num_bounces == 1:
                         score2 += 2
+                    update_after_point()
                 elif x_prev > right_limit:
                     if num_bounces == 0:
                         score2 += 1
                     elif num_bounces == 1:
                         score1 += 2
-                update_after_point()
+                    update_after_point()
 
         # Save the frame
         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
@@ -381,7 +426,7 @@ if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
     frame_size = (frame_width, frame_height) # Size of the frames
-    time_margin = 5
+    time_margin = 3
 
     # Configuration to stream the video
     picam = Picamera2()
@@ -397,10 +442,11 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_bounceNotDetected4.avi")
+    output_path = os.path.join(output_folder_path, "output_video_procesos1.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
+    # TODO: correct_password = True
     correct_password, picam, out = ss.insert_password(picam, out)
     
     if correct_password:
@@ -421,6 +467,14 @@ if __name__ == "__main__":
         left_limit, right_limit = desk_detection(frame, cte.DESK_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
         left_net, right_net, desk_top = net_detection(frame, cte.NET_COLORS, sobel_filter, gauss_sigma, gauss_filter_shape)
 
+        frame_copy = cv2.cvtColor(copy.deepcopy(frame), cv2.COLOR_BGR2GRAY)
+        frame_copy[:, left_limit] = 250
+        frame_copy[:, right_limit] = 250
+        frame_copy[:,left_net] = 250
+        frame_copy[:,right_net] = 250
+        frame_copy[desk_top,:] = 250
+        save_images(frame_copy, "fields", "./fotos_memoria")
+
         # Parameters for the background subtraction
         history = 100
         varThreshold = 50
@@ -430,8 +484,8 @@ if __name__ == "__main__":
         message = "Let the game begin!"
         print(message)
         frame = draw_score(frame, frame_size, message, False)
-        for i in range(int(fps)*5):
-            cv2.imshow("picam", frame)
+        for i in range(int(fps)*time_margin):
+            # cv2.imshow("picam", frame)
             out.write(frame)
 
         win = False
