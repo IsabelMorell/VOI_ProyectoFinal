@@ -84,13 +84,17 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
 
 
 if __name__ == "__main__":
-    filename = "./auxiliar/punto_0.jpg"
+    filename = "./data/color_segmentation/desk_1.jpg"
     img = cv2.imread(filename)
-    img[354:364,630:640] = (0, 0, 255)
+    
+    ball_mask, segmented_ball = color_segmentation(img, cte.PINGPONG_BALL_COLORS)
+    show_image(ball_mask)
+    show_image(segmented_ball)
 
-    show_image(img, "primer bote detectado")
-    mask, segmented_img = color_segmentation(img, cte.PINGPONG_BALL_COLORS)
-    show_image(mask, "Mask")
-    show_image(segmented_img, "Segmented image")
-
+    # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
+    coords = np.column_stack(np.where(ball_mask > 0))  # Pixeles azules que se han movido
+    if coords.size > 0:
+        print("pelota encontrada")
+    else:
+        print("pelota no encontrada")
     
