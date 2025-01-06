@@ -21,7 +21,7 @@ LIGHT_COLORS = {
     'dark_blue': (95,195,160),
     'light_blue': (95,65,170),
     'dark_green': (50,175,105),
-    'light_green': (35,75,160)
+    'light_green': (35,75,145)
 }
 
 DARK_COLORS = {
@@ -30,10 +30,10 @@ DARK_COLORS = {
     'light_yellow': (35,150,205),
     'orange': (20,255,255),
     'pink': (180,80,195),
-    'dark_blue': (105,255,185),
+    'dark_blue': (150,255,255),
     'light_blue': (105,130,195),
     'dark_green': (70,230,155),
-    'light_green': (50,120,170)
+    'light_green': (100,120,180)
 }
 
 CODE_HSV2BGR = 54

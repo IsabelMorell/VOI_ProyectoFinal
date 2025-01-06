@@ -108,7 +108,7 @@ def calculate_fps(picam):
 def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2):
     end_point = False
     # Coordinate x of bounce to locate the field where it bounced
-    if y < desk_top:  # it bounced on the floor
+    if y > desk_top:  # it bounced on the floor
         if x_prev < x:  # Move made by P1
             if num_bounces == 0:
                 score2 += 1
@@ -150,7 +150,7 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
                 score2 += 1
                 print("score2:", 5)
                 end_point = True
-        else:  # Move made by P2
+        else:  # Bounce in field of P1 move made by P2
             if saque and num_bounces == 0:
                 score1 += 1
                 print("score1:", 4)
@@ -260,12 +260,12 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_procesos4.avi")
+    output_path = os.path.join(output_folder_path, "output_video_ultima_prueba.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    # TODO: correct_password, picam, out = ss.insert_password(picam, out)
-    correct_password = True
+    # TODO: correct_password = True
+    correct_password, picam, out = ss.insert_password(picam, out)
     
     if correct_password:
         t_auxiliar = time.time()
@@ -389,20 +389,36 @@ if __name__ == "__main__":
                     else:  # Movimiento horizontal
                         movement[1] = "H" 
                 if x_prev is not None:
-                    print("x_prev", x_prev)
-                    print("x", x)
+                    print("x_prev", x_prev, y_prev)
+                    print("x", x, y)
                     if x > x_prev:  # Derecha
                         movement[0] = "D"
                     else:
                         movement[0] = "I"
 
                 print("mov", movement)
-        
-                # Localizar los botes y cuántos hay
-                if movement_prev[1] is not None:
-                    if movement_prev[1] == "B" and movement[1] == "S":
-                        num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
-                movement_prev[1] = movement[1]
+
+                if saque and ((turn_player1 and x > left_net) or ((not turn_player1) and x < right_net)):
+                    saque = False
+                    print("num_bounces antes del punto 9", num_bounces)
+                    if num_bounces == 0:
+                        if turn_player1:
+                            score2 += 1
+                            print("score2:", 9)
+                        else:
+                            score1 += 1
+                            print("score1", 9)
+                        end_point = True
+                        update_after_point()
+                    num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
+                
+                if not end_point:
+                    # Localizar los botes y cuántos hay
+                    if movement_prev[1] is not None:
+                        if movement_prev[1] == "B" and movement[1] == "S":
+                            num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
+                    print("num_bounces", num_bounces)
+                    movement_prev[1] = movement[1]
                 
                 if end_point:  # actualizar la puntuacion
                     update_after_point()
@@ -410,32 +426,17 @@ if __name__ == "__main__":
                     if movement_prev[0] != movement[0]:  # The ball changes direction
                         if x >= (right_net-10) and x <= (right_net+20):  # Ball hit the net
                             score1 += 1
-                            print("score1", 9)
+                            print("score1", 10)
                             end_point = True
                             update_after_point()
                         elif x >= (left_net-20) and x <= (left_net+10):
                             score2 += 1
-                            print("score2:", 9)
+                            print("score2:", 10)
                             end_point = True
                             update_after_point()
                         else:  # Player hit the ball back
                             num_bounces = 0
                     movement_prev[0] = movement[0]
-
-                    if saque and ((turn_player1 and x > left_net) or ((not turn_player1) and x < right_net)):
-                        saque = False
-                        if num_bounces == 0:
-                            if turn_player1:
-                                score2 += 1
-                                print("score2:", 10)
-                            else:
-                                score1 += 1
-                                print("score1", 10)
-                            end_point = True
-                            update_after_point()
-                        num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
-                    x_prev = x
-                y_prev = y
             else:  # The ball hasn't move
                 if score1 != 0 or score2 != 0 and not saque:  # Game has started
                     if x_prev < left_limit:  # ball out of range
@@ -443,9 +444,6 @@ if __name__ == "__main__":
                             score1 += 1
                             print("score1", 11)
                         elif num_bounces == 1:
-                            print("Aqui es dnd se sumaba doble para P2")
-                            print("x_prev", x_prev)
-                            print("left_limit", left_limit)
                             score2 += 1
                             print("score2:", 11)
                         end_point = True
@@ -459,6 +457,9 @@ if __name__ == "__main__":
                             print("score1", 12)
                         end_point = True
                         update_after_point()
+            
+            x_prev = x
+            y_prev = y
 
             # Save the frame
             frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)

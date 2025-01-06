@@ -98,7 +98,7 @@ def insert_password(picam, out, tiempo_espera: int = 90) -> bool:
     while i < len(password):
         color = password[i]
         frame = picam.capture_array()  # Hacemos la foto
-        cv2.imshow("picam", frame)
+        # cv2.imshow("picam", frame)
         out.write(frame) 
 
         if i < 10:
@@ -121,7 +121,7 @@ def insert_password(picam, out, tiempo_espera: int = 90) -> bool:
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) < 1.5:  # time.sleep(1.5)
             frame = picam.capture_array()  # Hacemos la foto
-            cv2.imshow("picam", frame)
+            # cv2.imshow("picam", frame)
             out.write(frame) 
 
         if time.time() - tiempo_inicio > tiempo_espera:
