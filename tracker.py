@@ -260,11 +260,12 @@ if __name__ == "__main__":
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
     output_folder_path = "./output"
     create_folder(output_folder_path)
-    output_path = os.path.join(output_folder_path, "output_video_ultima_prueba.avi")
+    output_path = os.path.join(output_folder_path, "output_tiempo_real_2jugadores.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    correct_password, picam, out = ss.insert_password(picam, out)
+    # correct_password, picam, out = ss.insert_password(picam, out)
+    correct_password = True
     
     if correct_password:
         t_auxiliar = time.time()

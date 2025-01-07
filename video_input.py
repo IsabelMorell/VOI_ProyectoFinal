@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # Create a VideoWriter object to save the video
     fourcc = cv2.VideoWriter_fourcc(*'XVID') # Codec to use
-    folder_path = "./input"
+    folder_path = "./data/input"
     create_folder(folder_path)
     output_path = os.path.join(folder_path, "input_tracker_postgrabacion.avi")
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
