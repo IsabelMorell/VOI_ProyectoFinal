@@ -228,7 +228,7 @@ if __name__ == "__main__":
     frame_width = 1280
     frame_height = 720
     frame_size = (frame_width, frame_height) # Size of the frames
-    time_margin = 3
+    time_margin = 10
 
     # Configuration to stream the video
     picam = Picamera2()
