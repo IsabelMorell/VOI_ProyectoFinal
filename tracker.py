@@ -264,7 +264,6 @@ if __name__ == "__main__":
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    # TODO: correct_password = True
     correct_password, picam, out = ss.insert_password(picam, out)
     
     if correct_password:
