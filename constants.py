@@ -21,7 +21,7 @@ LIGHT_COLORS = {
     'dark_blue': (95,195,160),
     'light_blue': (95,65,170),
     'dark_green': (50,175,105),
-    'light_green': (35,75,160)
+    'light_green': (35,75,145)
 }
 
 DARK_COLORS = {
@@ -30,17 +30,20 @@ DARK_COLORS = {
     'light_yellow': (35,150,205),
     'orange': (20,255,255),
     'pink': (180,80,195),
-    'dark_blue': (105,255,185),
+    'dark_blue': (150,255,255),
     'light_blue': (105,130,195),
     'dark_green': (70,230,155),
-    'light_green': (50,120,170)
+    'light_green': (100,120,180)
 }
 
 CODE_HSV2BGR = 54
 CODE_BGR2HSV = 40
 
 # TRACKER
-DESK_COLORS = [(0, 125, 25), (20, 255, 255)]
-NET_COLORS = [(0, 198, 105), (255, 255, 255)]
-PINGPONG_BALL_COLORS = [(56, 114, 69), (86, 218, 214)]  # Blue ball
+# DESK_COLORS = [(0, 125, 25), (20, 255, 255)]  # during the day
+# NET_COLORS = [(0, 198, 105), (255, 255, 255)]  # during the day
+DESK_COLORS = [(0, 125, 25), (20, 255, 80)]  # during the night
+NET_COLORS = [(120, 181, 70), (255, 255, 255)]  # during the night
+PINGPONG_BALL_COLORS = [(0, 78, 160), (88, 255, 255)]  # Orange ball
+# PINGPONG_BALL_COLORS = [(60, 150, 69), (86, 218, 184)]  # Blue ball
 POINTS2WIN = 5
