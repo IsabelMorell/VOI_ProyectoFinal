@@ -112,30 +112,24 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
         if x_prev < x:  # Move made by P1
             if num_bounces == 0:
                 score2 += 1
-                print("score2:", 1)
                 end_point = True
             elif num_bounces == 1:
                 if saque:
                     score2 += 1
-                    print("score2:", 2)
                     end_point = True
                 else:
                     score1 += 1
-                    print("score1:", 1)
                     end_point = True
         else:  # Move made by P2
             if num_bounces == 0:
                 score1 += 1
-                print("score1:", 2)
                 end_point = True
             elif num_bounces == 1:
                 if saque:
                     score1 += 1
-                    print("score1:", 3)
                     end_point = True
                 else:
                     score2 += 1
-                    print("score2:", 3)
                     end_point = True
     elif x >= left_limit and x < left_net:
         if x_prev < x:  # Bounce in field of P1 made by P1
@@ -144,45 +138,37 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
                     num_bounces += 1
                 elif num_bounces == 1:
                     score2 += 1
-                    print("score2:", 4)
                     end_point = True
             else:
                 score2 += 1
-                print("score2:", 5)
                 end_point = True
         else:  # Bounce in field of P1 move made by P2
             if saque and num_bounces == 0:
                 score1 += 1
-                print("score1:", 4)
                 end_point = True
             else:
                 if num_bounces == 0:
                     num_bounces += 1
                 elif num_bounces == 1:
                     score2 += 1
-                    print("score2:", 6)
                     end_point = True
     elif x >= left_net and x <= right_net:  # it bounced on the net
         if x_prev < x:  # Move made by P1
             score2 += 1
-            print("score2:", 7)
             end_point = True
         else:  # Move made by P2
             score1 += 1
-            print("score1:", 5)
             end_point = True
     elif x > right_net and x < right_limit:
         if x_prev < x:  # Move made by P1
             if saque and num_bounces == 0:
                 score2 += 1
-                print("score2:", 8)
                 end_point = True
             else:
                 if num_bounces == 0:
                     num_bounces += 1
                 elif num_bounces == 1:
                     score1 += 1
-                    print("score1:", 6)
                     end_point = True
         else:  # Move made by P2
             if saque:
@@ -190,11 +176,9 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
                     num_bounces += 1
                 elif num_bounces == 1:
                     score1 += 1
-                    print("score1:", 7)
                     end_point = True
             else:
                 score1 += 1
-                print("score1:", 8)
                 end_point = True
         
     return num_bounces, score1, score2, end_point
@@ -264,8 +248,7 @@ if __name__ == "__main__":
     out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
 
     # Security system
-    # correct_password, picam, out = ss.insert_password(picam, out)
-    correct_password = True
+    correct_password, picam, out = ss.insert_password(picam, out)
     
     if correct_password:
         t_auxiliar = time.time()
@@ -389,25 +372,18 @@ if __name__ == "__main__":
                     else:  # Movimiento horizontal
                         movement[1] = "H" 
                 if x_prev is not None:
-                    print("x_prev", x_prev, y_prev)
-                    print("x", x, y)
                     if x > x_prev:  # Derecha
                         movement[0] = "D"
                     else:
                         movement[0] = "I"
 
-                print("mov", movement)
-
                 if saque and ((turn_player1 and x > left_net) or ((not turn_player1) and x < right_net)):
                     saque = False
-                    print("num_bounces antes del punto 9", num_bounces)
                     if num_bounces == 0:
                         if turn_player1:
                             score2 += 1
-                            print("score2:", 9)
                         else:
                             score1 += 1
-                            print("score1", 9)
                         end_point = True
                         update_after_point()
                     num_bounces = 0  # Reestablish num_bounces to 0 because the ball is going to the other field
@@ -417,7 +393,7 @@ if __name__ == "__main__":
                     if movement_prev[1] is not None:
                         if movement_prev[1] == "B" and movement[1] == "S":
                             num_bounces, score1, score2, end_point = check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2)
-                    print("num_bounces", num_bounces)
+
                     movement_prev[1] = movement[1]
                 
                 if end_point:  # actualizar la puntuacion
@@ -426,12 +402,10 @@ if __name__ == "__main__":
                     if movement_prev[0] != movement[0]:  # The ball changes direction
                         if x >= (right_net-10) and x <= (right_net+20):  # Ball hit the net
                             score1 += 1
-                            print("score1", 10)
                             end_point = True
                             update_after_point()
                         elif x >= (left_net-20) and x <= (left_net+10):
                             score2 += 1
-                            print("score2:", 10)
                             end_point = True
                             update_after_point()
                         else:  # Player hit the ball back
@@ -442,19 +416,15 @@ if __name__ == "__main__":
                     if x_prev < left_limit:  # ball out of range
                         if num_bounces == 0:
                             score1 += 1
-                            print("score1", 11)
                         elif num_bounces == 1:
                             score2 += 1
-                            print("score2:", 11)
                         end_point = True
                         update_after_point()
                     elif x_prev > right_limit:
                         if num_bounces == 0:
                             score2 += 1
-                            print("score2:", 12)
                         elif num_bounces == 1:
                             score1 += 1
-                            print("score1", 12)
                         end_point = True
                         update_after_point()
             
