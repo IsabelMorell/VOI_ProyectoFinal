@@ -1,21 +1,51 @@
 import os
 import cv2
 import numpy as np
+from typing import List
 
-def create_folder(folder_path: str):
+def create_folder(folder_path: str) -> None:
+    """
+    Creates a new folder with path folder_path if it doesn´t exist 
+
+    Args:
+        folder_path (str): path to the new folder
+    """
     os.makedirs(folder_path, exist_ok=True)
 
-def load_images(filenames):
+def load_images(filenames: List[str]) -> List[np.ndarray]:
+    """
+    Load the images whose names are in the List filenames
+
+    Args:
+        filenames (List[str]): list with the file names
+
+    Returns
+        List[np.ndarray]: images corresponding to the file names
+    """
     return [cv2.imread(filename) for filename in filenames]
 
-def save_images(img, img_name: str, folder_path: str = "."):
+def save_images(img: np.ndarray, img_name: str, folder_path: str = ".") -> None:
+    """
+    Saves an images with a specific name and in a specific folder
+
+    Args:
+        img (np.ndarray): image to save
+        img_name (str): name of the image to save
+        folder_path (str): path to the folder where the image will be saved
+    """
     if img_name[-4:] != ".jpg":
         img_name = f"{img_name}.jpg"
     img_path = os.path.join(folder_path, img_name)
-    print(img_path)
     cv2.imwrite(img_path, img)
 
-def show_image(img, img_name: str = "Image") -> None:
+def show_image(img: np.ndarray, img_name: str = "Image") -> None:
+    """
+    Shows an image with a specific name
+
+    Args:
+        img (np.ndarray): image to show
+        img_name (str): name of the image to show
+    """
     cv2.imshow(img_name, img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

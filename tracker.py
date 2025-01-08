@@ -292,7 +292,7 @@ def check_bounce(x: float, y: float, x_prev: float, left_limit: int, left_net: i
         
     return num_bounces, score1, score2, end_point
 
-def update_after_point():
+def update_after_point() -> None:
     """
     Updates the parameters after a point is scored
     """
@@ -307,7 +307,7 @@ def update_after_point():
         x_prev = right_limit
         movement_prev = ["I", None]
 
-def check_winner(points2win: int, score1: int, score2: int):
+def check_winner(points2win: int, score1: int, score2: int) -> Tuple:
     """
     Checks if one of the players has won and who.
 
