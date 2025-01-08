@@ -1,9 +1,7 @@
 import os
 import cv2
 import glob
-import os
 import time
-
 import numpy as np
 import constants as cte
 
