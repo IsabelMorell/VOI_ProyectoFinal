@@ -1,19 +1,42 @@
 from picamera2 import Picamera2
-from typing import List
+from typing import List, Tuple
 from utils import *
 import security_system as ss
 import constants as cte
 import time, cv2, copy
 import numpy as np
 
-def color_segmentation(img, limit_colors):
+def color_segmentation(img: np.ndarray, limit_colors: List[Tuple[int]]) -> Tuple[np.ndarray]:
+    """
+    Performs color-based segmentation on an input image using HSV color thresholds.
+
+    Args:
+        img (np.ndarray): input image in BGR format
+        limit_colors (List[Tuple[int, int, int]]): HSV range for segmentation
+
+    Returns:
+        mask (np.ndarray): binary mask for segmented image
+        segmented_bgr (np.ndarray): segmented image in BGR format
+    """
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv_img, limit_colors[0], limit_colors[1])
     segmented = cv2.bitwise_and(hsv_img, hsv_img, mask=mask)
     segmented_bgr = cv2.cvtColor(segmented, cv2.COLOR_HSV2BGR)
     return mask, segmented_bgr
 
-def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None) -> np.array:
+def gaussian_blur(img: np.ndarray, sigma: float, filter_shape: List | None = None) ->  Tuple[np.ndarray]:
+    """
+    Performs a gaussian blur on a given image using a custom filter determined by sigma and filter_shape
+
+    Args:
+        img (np.ndarray): input image
+        sigma (float): standard deviation (std) of the gaussian kernel.
+        filter_shape (List | None): shape of the filter. If it's None, then it's computed based on sigma
+
+    Returns:
+        gaussian_filter (np.ndarray): filter applied
+        gb_img.astype(np.uint8) (np.ndarray): blurred image
+    """
     # If not given, compute the filter shape 
     if filter_shape == None:
         filter_shape = [8*sigma + 1, 8*sigma + 1]
@@ -32,7 +55,20 @@ def gaussian_blur(img: np.array, sigma: float, filter_shape: List | None = None)
     gb_img = cv2.filter2D(img, ddepth=-1, kernel=gaussian_filter)     
     return gaussian_filter, gb_img.astype(np.uint8)
 
-def sobel_edge_detector(img: np.array, filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None) -> np.array:
+def sobel_edge_detector(img: np.ndarray, filter: np.ndarray, gauss_sigma: float, gauss_filter_shape: List | None = None) -> Tuple[np.ndarray]:
+    """
+    Detects edges on an image using the sobel kernel
+
+    Args:
+        img (np.ndarray): input image in BGR format
+        filter (np.ndarray): filter to be applied
+        gauss_sigma (float): standard deviation (std) of the gaussian kernel.
+        gauss_filter_shape (List | None): shape of the gaussian filter. If it's None, then it's computed based on sigma
+
+    Returns:
+        np.squeeze(sobel_edges_img) (np.ndarray): image after the sobel edge detector was applied
+        np.squeeze(theta) (np.ndarray): gradient angles at each pixel
+    """
     # Transform the img to grayscale
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
@@ -58,7 +94,19 @@ def sobel_edge_detector(img: np.array, filter: np.array, gauss_sigma: float, gau
     theta = np.arctan2(h_edges, v_edges)   
     return np.squeeze(sobel_edges_img), np.squeeze(theta)
 
-def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+def canny_edge_detector(img: np.ndarray, sobel_filter: np.ndarray, gauss_sigma: float, gauss_filter_shape: List | None = None) -> np.ndarray:
+    """
+    Implements the Canny edge detection algorithm
+
+    Args:
+        img (np.ndarray): input image in BGR format
+        sobel_filter (np.ndarray): sobel filter to be applied
+        gauss_sigma (float): standard deviation (std) of the gaussian kernel.
+        gauss_filter_shape (List | None): shape of the gaussian filter. If it's None, then it's computed based on sigma
+
+    Returns:
+        canny_edges_img (np.ndarray): image with refined edges
+    """
     # Call the method sobel_edge_detector()
     sobel_edges_img, theta = sobel_edge_detector(img, sobel_filter, gauss_sigma, gauss_filter_shape)
     
@@ -70,7 +118,26 @@ def canny_edge_detector(img: np.array, sobel_filter: np.array, gauss_sigma: floa
     canny_edges_img[canny_edges_img>threshold] = 255
     return canny_edges_img
 
-def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+def net_detection(frame: np.ndarray, net_colors: List[Tuple[int]], sobel_filter: np.ndarray, gauss_sigma: float, gauss_filter_shape: List | None = None) -> Tuple[int]:
+    """
+    Detects the edges of the net in a pingpong table as well as the location of the desk top. This is because it is 
+    the same as the lower part of the net.
+    For this, it will first apply a color-based segmentation on the input image, to locate the net. Then it will calculate
+    the edges of the net using the canny edge algorithm and lastly it will select the pixel more on the left, the right and the
+    bottom
+
+    Args:
+        frame (np.ndarray): input frame in BGR format
+        net_colors (List[Tuple[int, int, int]]): HSV range for segmentation
+        sobel_filter (np.ndarray): sobel filter to be applied
+        gauss_sigma (float): standard deviation (std) of the gaussian kernel.
+        gauss_filter_shape (List | None): shape of the gaussian filter. If it's None, then it's computed based on sigma
+
+    Returns:
+        left_net (int): x location of the left-side of the net
+        right_net (int): x location of the right-side of the net
+        desk_top (int): y location of the top-side of the desk
+    """
     mask, segmented_net = color_segmentation(frame, net_colors)
     net_edges = canny_edge_detector(segmented_net, sobel_filter, gauss_sigma, gauss_filter_shape)     
     
@@ -81,7 +148,23 @@ def net_detection(frame: np.array, net_colors: List, sobel_filter: np.array, gau
         desk_top = np.max(coords[:, 0])
         return left_net, right_net, desk_top
 
-def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, gauss_sigma: float, gauss_filter_shape: List | None = None):
+def desk_detection(frame: np.ndarray, desk_colors: List[Tuple[int]], sobel_filter: np.ndarray, gauss_sigma: float, gauss_filter_shape: List | None = None) -> Tuple[int]:
+    """
+    Detects the edges of the table.
+    For this, it will first apply a color-based segmentation on the input image, to locate the desk. Then it will calculate
+    its edges using the canny edge algorithm and lastly it will select the pixel more on the left and the right 
+
+    Args:
+        frame (np.ndarray): input frame in BGR format
+        desk_colors (List[Tuple[int, int, int]]): HSV range for segmentation
+        sobel_filter (np.ndarray): sobel filter to be applied
+        gauss_sigma (float): standard deviation (std) of the gaussian kernel.
+        gauss_filter_shape (List | None): shape of the gaussian filter. If it's None, then it's computed based on sigma
+
+    Returns:
+        left_limit (int): x location of the left-side of the desk
+        right_limit (int): x location of the right-side of the desk
+    """
     mask, segmented_desk = color_segmentation(frame, desk_colors)
     desk_edges = canny_edge_detector(segmented_desk, sobel_filter, gauss_sigma, gauss_filter_shape) 
     # We get the coordinates of the white pixels
@@ -92,7 +175,16 @@ def desk_detection(frame: np.array, desk_colors: List, sobel_filter: np.array, g
         right_limit = np.max(coords[:, 1])
         return left_limit, right_limit
 
-def calculate_fps(picam):
+def calculate_fps(picam) -> float:
+    """
+    Calculates the frames per second (FPS) of the picamera
+
+    Args:
+        picam: instance of the Picamera
+
+    Returns:
+        fps (float): frames per second
+    """
     # Medir FPS
     num_frames = 120  # Número de frames para calcular FPS
     start_time = time.time()
@@ -105,7 +197,24 @@ def calculate_fps(picam):
     fps = num_frames / elapsed_time
     return fps
 
-def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, desk_top, saque, num_bounces, score1, score2):
+def check_bounce(x: float, y: float, x_prev: float, left_limit: int, left_net: int, right_net: int, right_limit: int, desk_top: int, saque: bool, num_bounces: int, score1: int, score2: int):
+    """
+    Given the location of a ball bounce, it determines its effect during gameplay
+
+    Args:
+        x (float): current x location of the ball
+        y (float): current y location of the ball
+        x_prev (float): previous x location of the ball
+        left_limit, left_net, right_net, right_limit (int): table and net boundaries.
+        desk_top (int): top boundary of the table
+        saque (bool): indicates if the ball is being served
+        num_bounces (int): number of ball bounces on the specific field
+        score1 (int): score of player 1
+        score2 (int): score of player 2
+    
+    Returns:
+        Updated num_bounces (int), score1 (int), score2 (int), and end_point (bool)
+    """
     end_point = False
     # Coordinate x of bounce to locate the field where it bounced
     if y > desk_top:  # it bounced on the floor
@@ -184,6 +293,9 @@ def check_bounce(x, y, x_prev, left_limit, left_net, right_net, right_limit, des
     return num_bounces, score1, score2, end_point
 
 def update_after_point():
+    """
+    Updates the parameters after a point is scored
+    """
     global turn_player1, saque, num_bounces, x_prev, movement_prev
     turn_player1 = not turn_player1
     saque = True
@@ -196,6 +308,14 @@ def update_after_point():
         movement_prev = ["I", None]
 
 def check_winner(points2win: int, score1: int, score2: int):
+    """
+    Checks if one of the players has won and who.
+
+    Args:
+        points2win (int): points needed to win a game
+        score1 (int): points of player 1
+        score2 (int): points of  player 2
+    """
     if score1 >= points2win:
         return True, 1
     elif score2 >= points2win:
@@ -203,7 +323,19 @@ def check_winner(points2win: int, score1: int, score2: int):
     else:
         return False, None
 
-def draw_score(frame: np.array, frame_size: List, message: str, isScore: bool) -> np.array:
+def draw_score(frame: np.ndarray, frame_size: List, message: str, isScore: bool) -> np.ndarray:
+    """
+    Draws either the ame score or a message on the frame
+
+    Args:
+        frame (np.ndarray): input frame in BGR format
+        frame_size (List): frame dimensions
+        message (str): text to display
+        isScore (bool): indicates if the message is a score or not
+
+    Returns:
+        frame (np.ndarray): input frame with the message included
+    """
     frame_width, frame_height = frame_size
     if isScore:
         rect_width = 100
@@ -254,7 +386,6 @@ if __name__ == "__main__":
         t_auxiliar = time.time()
         while (time.time() - t_auxiliar) <= time_margin:
             frame = picam.capture_array()
-            #cv2.imshow("picam", frame)
             out.write(frame)
         frame = picam.capture_array()
 
@@ -282,7 +413,7 @@ if __name__ == "__main__":
         mog2 = cv2.createBackgroundSubtractorMOG2(history, varThreshold, detectShadows)
 
         # Instances needed to calculate the number of bounces
-        turn_player1 = True  # Por conveniencia va a sacar siempre 1º el jugador de la izquierda
+        turn_player1 = True  # By convenience, player 1, who is the one on the left, will start serving
         saque = True
         end_point = True
         win = False
@@ -299,7 +430,6 @@ if __name__ == "__main__":
         print(message)
         frame = draw_score(frame, frame_size, message, False)
         for i in range(int(fps)*time_margin):
-            # cv2.imshow("picam", frame)
             out.write(frame)
 
         x = frame_width//2
@@ -310,18 +440,14 @@ if __name__ == "__main__":
                         frame = picam.capture_array()
                         frame_auxiliar = copy.deepcopy(frame)
                         ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
-                        
-                        # Comienzo la sustraccion de fondo en tiempo real
-                        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+                        mask = mog2.apply(segmented_ball)  # This detects only the orange points which have move (the ball)
 
-                        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
-                        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+                        coords = np.column_stack(np.where(mask > 0))  # Pixels of the ball
                         if coords.size > 0:
                             x = np.mean(coords[:, 1])
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        #cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -331,18 +457,14 @@ if __name__ == "__main__":
                         frame = picam.capture_array()
                         frame_auxiliar = copy.deepcopy(frame)
                         ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
-                        
-                        # Comienzo la sustraccion de fondo en tiempo real
-                        mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+                        mask = mog2.apply(segmented_ball)  # This detects only the orange points which have move (the ball)
 
-                        # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
-                        coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+                        coords = np.column_stack(np.where(mask > 0))  # Pixels of the ball
                         if coords.size > 0:
                             x = np.mean(coords[:, 1])
                             y = np.mean(coords[:, 0])
                         # Save the frame
                         frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-                        #cv2.imshow("picam", frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
@@ -355,12 +477,9 @@ if __name__ == "__main__":
 
             frame_auxiliar = copy.deepcopy(frame)
             ball_mask, segmented_ball = color_segmentation(frame_auxiliar, cte.PINGPONG_BALL_COLORS)
-            
-            # Comienzo la sustraccion de fondo en tiempo real
-            mask = mog2.apply(segmented_ball)  # Esto es lo que se ha movido (osea la pelota)
+            mask = mog2.apply(segmented_ball)  # This detects only the orange points which have move (the ball)
 
-            # Calcular el gradiente entre la mask y la mask anterior para saber si la pelota esta bajando o subiendo
-            coords = np.column_stack(np.where(mask > 0))  # Pixeles azules que se han movido
+            coords = np.column_stack(np.where(mask > 0))  # Pixels of the ball
             if coords.size > 0:
                 x = np.mean(coords[:, 1])
                 y = np.mean(coords[:, 0])
@@ -396,7 +515,7 @@ if __name__ == "__main__":
 
                     movement_prev[1] = movement[1]
                 
-                if end_point:  # actualizar la puntuacion
+                if end_point:  # update scores
                     update_after_point()
                 else:
                     if movement_prev[0] != movement[0]:  # The ball changes direction
@@ -433,7 +552,6 @@ if __name__ == "__main__":
 
             # Save the frame
             frame = draw_score(frame, frame_size, f"{score1} - {score2}", True)
-            #cv2.imshow("picam", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -451,7 +569,6 @@ if __name__ == "__main__":
     print(message)
     frame = draw_score(frame, frame_size, message, False)
     for i in range(int(fps)*time_margin):
-        #cv2.imshow("picam", frame)
         out.write(frame)
     out.release()
     cv2.destroyAllWindows()
