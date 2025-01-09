@@ -11,4 +11,4 @@ This project involves the use of a Raspberry Pi and the picamera module to desig
 
 #### Ping-pong game tracker
 
-### Conclusion
+### Results and next steps
