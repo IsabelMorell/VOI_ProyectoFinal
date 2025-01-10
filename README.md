@@ -6,8 +6,13 @@ This project involves the use of a Raspberry Pi and the picamera module to desig
 
 ### Methodology
 #### Camera Calibration
-
+The camera calibration process used OpenCV functions, and employed a chessboard-like pattern for reference. Approximately 30 images were captured using the Raspberry-Pi camera, and went through careful selection process, because while some images showed varied lighting and angles, other ones were discarded. The calibration was completed with edge detection, visually marking the borders for reference as in the picture bellow.
+![Corners detected](data/chessboard_corners/chessboard_corners_09.jpg)
 #### Security System
+The security system identifies a sequence of color cards displayed one at a time. The sequence acts as a password, whose length can be customized (admiting repetition as well). Using color segmentation techniques, the system validates each card by analyzing frames and counting color-specific pixels. If the correct color is detected, the system proceeds to the next one. After a timeout of 90 seconds without valid input, the process resets.
+
+#### Image transformation sequence
+The system captures frames in BGR format and converts them to HSV for segmentation. Having previously defined minimum and maximum HSV values for accurate color detection several times, we got the optimal values for extracting the mask of an image. A binary mask, created from these values, calculates the pixel count for each detected color, ensuring accuracy throughout the process until the full password is entered, and the security system is finally disconected.
 
 #### Ping-pong game tracker
 Once the correct password has been detected, the minigame starts. The program starts by calculating the fields thanks to a color segmentation and the Canny edge detector algorithm. The fields are shown in the following image:

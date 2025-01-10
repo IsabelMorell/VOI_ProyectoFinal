@@ -47,6 +47,17 @@ def save_corners(folder_path: str, img_name: str, imgs: List[np.ndarray], corner
             print("Esquinas no encontradas")
 
 def get_chessboard_points(chessboard_shape: Tuple[int, int], dx: int, dy: int) -> np.ndarray:
+    """
+    Extracts the chessboard points coordinates of its inner corners
+
+    Args:
+        chessboard_shape (Tuple[int, int]): dimenssion of inner corners of our chessboard
+        dx (int): x axis differential
+        dy (int): y axis differential
+
+    Returns:
+        np.ndarray: array of identified points coordinates
+    """
     matriz = []
     for i in range(chessboard_shape[1]):
         for j in range(chessboard_shape[0]):
@@ -54,6 +65,17 @@ def get_chessboard_points(chessboard_shape: Tuple[int, int], dx: int, dy: int) -
     return np.array(matriz, dtype=np.float32)
 
 def get_corners_and_chessboards_points(imgs: List[np.ndarray], corners: List[Tuple[bool, cv2.typing.MatLike]]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Calculates the valid corners and valid chessboard points coordinates of each image in the list imgs
+
+    Args:
+        imgs (List[np.ndarray]): list of images
+        corners (List[Tuple[bool, cv2.typing.MatLike]]): corners of the images detected previously
+
+    Returns:
+        np.ndarray: valid corners for all images
+        np.ndarray]: valid chessboard points coordinates for all images
+    """    
     imgs_copy = copy.deepcopy(imgs)
     valid_corners = []
     chessboard_points = []
@@ -69,15 +91,20 @@ def get_corners_and_chessboards_points(imgs: List[np.ndarray], corners: List[Tup
     return chessboard_points, valid_corners
     
 def calibrate_camera() -> None:
+    """
+    Calibrates the camera calling all functions needed: it calculates the corners and chessboard points of the images 
+    (if they can be detected) and then calibrates the camera, saving as local variables the intrinsic parameters of
+    the camera such as the rms.
+    """    
     imgs_path = glob.glob('./data/chessboard_frames/*.jpg')
     folder = "./data/chessboard_corners"
     img_name = "chessboard_corners"
     imgs = load_images(imgs_path)
-    # Detectamos esquinas
+    # Detect corners
     corners = find_chessboard_corners(imgs)
     save_corners(folder, img_name, imgs, corners)
     chessboard_points, valid_corners = get_corners_and_chessboards_points(imgs, corners)
-    # Calibramos la cámara
+    # Calibrate the camera
     height, width, _ = imgs[0].shape
     for i in range(len(imgs)):
         rms, intrinsics, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(chessboard_points[i], valid_corners[i], (height, width), None, None)

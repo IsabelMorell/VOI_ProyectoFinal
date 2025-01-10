@@ -50,7 +50,17 @@ def show_image(img: np.ndarray, img_name: str = "Image") -> None:
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def non_max_suppression(img, theta):
+def non_max_suppression(img: np.ndarray, theta: np.ndarray):
+    """
+    Applies Non-Maximum Suppression (NMS) to an image to thin edges by suppressing non-maximum gradient values.
+
+    Args:
+        img (np.ndarray): original image
+        theta (np.ndarray): array of gradient directions (in radians) corresponding to each pixel of the image
+
+    Returns:
+        np.ndarray: array of the same shape as the input image, with non-maximum gradients suppressed
+    """
     M, N = img.shape
     Z = np.zeros((M, N), dtype=np.float32)
 

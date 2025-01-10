@@ -6,7 +6,6 @@ HEIGHT = 8
 ZERO_ZONE = (-1, -1)
 NUM_ITERATIONS = 30
 ACCURACY = 0.01
-
 DX = 30
 DY = 30
 
@@ -23,7 +22,6 @@ LIGHT_COLORS = {
     'dark_green': (50,175,105),
     'light_green': (35,75,145)
 }
-
 DARK_COLORS = {
     'purple': (150,110,210),
     'dark_yellow': (25,255,255),
@@ -35,7 +33,6 @@ DARK_COLORS = {
     'dark_green': (70,230,155),
     'light_green': (100,120,180)
 }
-
 CODE_HSV2BGR = 54
 CODE_BGR2HSV = 40
 

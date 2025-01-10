@@ -3,11 +3,22 @@ import imageio
 import glob
 import numpy as np
 
-def nothing(x):
+def nothing(x: object) -> None:
+    """
+    Does nothing when it receives an argument
+
+    Args:
+        x (object): It can be any variable
+    """
     pass
 
-def get_hsv_color_ranges(image: np.array):
+def get_hsv_color_ranges(image: np.ndarray) -> None:
+    """
+    Displays an interactive window for selecting HSV color ranges from an image.
 
+    Args:
+        image (np.array): Input image in BGR format to be analyzed.
+    """
     # Create a window
     cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 

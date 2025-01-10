@@ -4,7 +4,16 @@ import os
 import time
 from utils import *
 
-def stream_video(folder_path, threshold, duration):
+def stream_video(folder_path: str, threshold: int, duration: int) -> None:
+    """
+    Starts a video that saves a frame (every time the threshold seconds have passed) 
+    into the folder indicated for the amount of time received
+
+    Args:
+        folder_path (str): Path of the folder where we are saving the frames
+        threshold (int): amount of time we wait between each take, in seconds
+        duration (int): total duration of the process, in seconds
+    """
     picam = Picamera2()
     picam.preview_configuration.main.size=(1280, 720)
     picam.preview_configuration.main.format="RGB888"
